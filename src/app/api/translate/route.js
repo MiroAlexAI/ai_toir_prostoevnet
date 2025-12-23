@@ -51,6 +51,12 @@ ${content}`;
         let usedModel = "";
         let lastError = null;
 
+        // Определяем список моделей для OpenRouter (сначала Gemini, потом Chimera как резерв)
+        const modelsToTry = [
+            'google/gemini-2.0-flash-exp:free',
+            'tngtech/tng-r1t-chimera:free'
+        ];
+
         // 1. Пытаемся вызвать прямой Google API подороже (если есть ключ)
         if (googleKey) {
             try {
@@ -72,6 +78,7 @@ ${content}`;
                     }
                 } else {
                     lastError = await response.json();
+                    usedModel = "Google Direct (Failed)";
                     console.warn("Direct Google API failed, will try OpenRouter...");
                 }
             } catch (e) {
@@ -79,51 +86,58 @@ ${content}`;
             }
         }
 
-        // 2. Если Google не сработал — идем по списку OpenRouter ключей
+        // 2. Если Google не сработал — идем по списку OpenRouter ключей и моделей
         if (!resultText) {
             if (openRouterKeys.length === 0) {
-                return NextResponse.json({ error: 'Нет доступных ключей API' }, { status: 500 });
+                return NextResponse.json({ error: 'Нет доступных ключей API', model: usedModel || "None" }, { status: 500 });
             }
 
-            for (let i = 0; i < openRouterKeys.length; i++) {
-                try {
-                    console.log(`Trying OpenRouter Key #${i + 1}...`);
-                    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${openRouterKeys[i]}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-                            'X-Title': 'News Analyst Desert Ops'
-                        },
-                        body: JSON.stringify({
-                            model: 'google/gemini-2.0-flash-exp:free',
-                            messages: [{ role: 'user', content: prompt }],
-                            temperature: 0.3,
-                        })
-                    });
+            outerLoop: for (let modelName of modelsToTry) {
+                for (let i = 0; i < openRouterKeys.length; i++) {
+                    try {
+                        console.log(`Trying OpenRouter Key #${i + 1} with model ${modelName}...`);
+                        usedModel = `OpenRouter Key #${i + 1} (${modelName})`;
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        resultText = data.choices?.[0]?.message?.content;
-                        if (resultText) {
-                            usedModel = `OpenRouter Key #${i + 1} (${data.model})`;
-                            break;
+                        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${openRouterKeys[i]}`,
+                                'Content-Type': 'application/json',
+                                'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+                                'X-Title': 'News Analyst Desert Ops'
+                            },
+                            body: JSON.stringify({
+                                model: modelName,
+                                messages: [{ role: 'user', content: prompt }],
+                                temperature: 0.3,
+                            })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            resultText = data.choices?.[0]?.message?.content;
+                            if (resultText) {
+                                usedModel = `OpenRouter Key #${i + 1} (${data.model})`;
+                                break outerLoop;
+                            }
+                        } else {
+                            lastError = await response.json();
+                            console.error(`OpenRouter Key #${i + 1} with ${modelName} failed:`, lastError);
+                            // Если ошибка 429 или 401, пробуем следующий ключ для ЭТОЙ ЖЕ модели
+                            continue;
                         }
-                    } else {
-                        lastError = await response.json();
-                        console.error(`OpenRouter Key #${i + 1} failed:`, lastError);
+                    } catch (e) {
+                        console.error(`OpenRouter Error (Key #${i + 1}, ${modelName}):`, e.message);
                     }
-                } catch (e) {
-                    console.error(`OpenRouter Error (Key #${i + 1}):`, e.message);
                 }
             }
         }
 
         if (!resultText) {
             return NextResponse.json({
-                error: 'Все ключи API исчерпаны или недоступны.',
-                details: lastError
+                error: 'Все ключи API и модели исчерпаны или недоступны.',
+                details: lastError,
+                model: usedModel || "All Failed"
             }, { status: 500 });
         }
 
@@ -134,6 +148,10 @@ ${content}`;
 
     } catch (error) {
         console.error('Translate Route Error:', error);
-        return NextResponse.json({ error: 'Ошибка сервера', details: error.message }, { status: 500 });
+        return NextResponse.json({
+            error: 'Ошибка сервера',
+            details: error.message,
+            model: "Critical Error"
+        }, { status: 500 });
     }
 }

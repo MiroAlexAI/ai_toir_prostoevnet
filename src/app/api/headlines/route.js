@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-export async function GET() {
-    const regionConfigs = [
+export async function GET(request) {
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category') || 'global';
+
+    const globalConfigs = [
         {
             name: 'Russia',
             sources: [
@@ -34,10 +37,50 @@ export async function GET() {
         }
     ];
 
+    const industryConfigs = [
+        {
+            name: 'Нефть и Газ (RU)',
+            sources: [
+                {
+                    url: 'https://angi.ru/',
+                    type: 'scrape',
+                    selector: 'a[href^="/news/"]',
+                    baseUrl: 'https://angi.ru'
+                }
+            ]
+        },
+        {
+            name: 'Добыча (RU)',
+            sources: [
+                {
+                    url: 'https://dprom.online/mainthemes/news/',
+                    type: 'scrape',
+                    selector: '.news-item__title',
+                    baseUrl: 'https://dprom.online'
+                }
+            ]
+        },
+        {
+            name: 'Энергетика (WW)',
+            sources: [
+                { url: 'https://www.eprussia.ru/news/rss.php', type: 'rss' },
+                { url: 'https://www.worldoil.com/rss', type: 'rss' }
+            ]
+        },
+        {
+            name: 'Металлы',
+            sources: [
+                { url: 'https://www.mining.com/feed/', type: 'rss' },
+                { url: 'https://www.mining-technology.com/feed/', type: 'rss' }
+            ]
+        }
+    ];
+
+    const regionConfigs = category === 'industry' ? industryConfigs : globalConfigs;
+
     try {
         const allHeadlines = [];
 
-        // Processing regions in parallel
         const regionPromises = regionConfigs.map(async (region) => {
             const regionHeadlines = [];
 
@@ -49,36 +92,50 @@ export async function GET() {
                         headers: {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                         },
-                        timeout: 8000
+                        timeout: 10000
                     });
 
-                    const $ = cheerio.load(response.data, { xmlMode: true });
+                    const data = response.data;
+                    const $ = cheerio.load(data, { xmlMode: true });
 
-                    // Universal search for feed items (RSS <item> or Atom <entry>)
-                    const items = $('item').length > 0 ? $('item') : $('entry');
+                    if (source.type === 'rss' || data.includes('<rss') || data.includes('<feed')) {
+                        const items = $('item').length > 0 ? $('item') : $('entry');
+                        items.each((i, el) => {
+                            if (regionHeadlines.length < 2) {
+                                let title = $(el).find('title').text() || '';
+                                // Улучшенный поиск ссылки для разных форматов RSS/Atom
+                                let link = $(el).find('link').text() || $(el).find('link').attr('href') || $(el).find('guid').text() || '';
 
-                    items.each((i, el) => {
-                        if (regionHeadlines.length < 2) {
-                            let title = $(el).find('title').text() || '';
-                            let link = $(el).find('link').text() || $(el).find('link').attr('href') || '';
+                                // Очистка от CDATA
+                                title = title.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+                                link = link.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
 
-                            // Remove CDATA and trim
-                            title = title.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
-                            link = link.replace(/<!\[CDATA\[|\]\]>/g, '').trim();
-
-                            if (title && link && title.length > 20) {
-                                if (!regionHeadlines.find(h => h.title === title)) {
-                                    regionHeadlines.push({
-                                        title,
-                                        link,
-                                        source: region.name
-                                    });
+                                if (title && link && title.length > 20) {
+                                    if (!regionHeadlines.find(h => h.title === title)) {
+                                        regionHeadlines.push({ title, link, source: region.name });
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        // Manual scraping
+                        $(source.selector).each((i, el) => {
+                            if (regionHeadlines.length < 2) {
+                                let title = $(el).text().trim();
+                                let link = $(el).attr('href') || $(el).closest('a').attr('href') || '';
+
+                                if (link && !link.startsWith('http')) {
+                                    link = source.baseUrl + link;
+                                }
+
+                                if (title && link && title.length > 25 && !regionHeadlines.find(h => h.title === title)) {
+                                    regionHeadlines.push({ title, link, source: region.name });
+                                }
+                            }
+                        });
+                    }
                 } catch (err) {
-                    console.error(`RSS Error [${region.name}]:`, err.message);
+                    // console.error(`Error:`, err.message);
                 }
             }
             return regionHeadlines;
@@ -89,7 +146,6 @@ export async function GET() {
 
         return NextResponse.json(allHeadlines);
     } catch (error) {
-        console.error('Regional Headlines API error:', error);
         return NextResponse.json([]);
     }
 }

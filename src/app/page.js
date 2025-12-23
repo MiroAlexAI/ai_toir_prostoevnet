@@ -9,24 +9,26 @@ export default function Home() {
   const [activeAction, setActiveAction] = useState(null);
   const [headlines, setHeadlines] = useState([]);
   const [loadingHeadlines, setLoadingHeadlines] = useState(true);
+  const [newsCategory, setNewsCategory] = useState("global"); // "global" or "industry"
+
+  const fetchHeadlines = async (category) => {
+    setLoadingHeadlines(true);
+    try {
+      const response = await fetch(`/api/headlines?category=${category}`);
+      if (response.ok) {
+        const data = await response.json();
+        setHeadlines(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch headlines:", error);
+    } finally {
+      setLoadingHeadlines(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchHeadlines = async () => {
-      try {
-        const response = await fetch('/api/headlines');
-        if (response.ok) {
-          const data = await response.json();
-          setHeadlines(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch headlines:", error);
-      } finally {
-        setLoadingHeadlines(false);
-      }
-    };
-
-    fetchHeadlines();
-  }, []);
+    fetchHeadlines(newsCategory);
+  }, [newsCategory]);
 
   const handleAction = async (actionType) => {
     if (!url) {
@@ -77,6 +79,7 @@ export default function Home() {
         const errorData = await aiResponse.json();
         const err = new Error(errorData.error || 'Ошибка при обработке AI');
         err.details = errorData.details;
+        err.model = errorData.model;
         throw err;
       }
 
@@ -95,8 +98,8 @@ export default function Home() {
       });
     } catch (error) {
       setResult({
-        text: `❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + JSON.stringify(error.details) : ''}\n\nПроверьте корректность URL и доступность сайта.`,
-        model: "Системная ошибка"
+        text: `❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + (typeof error.details === 'object' ? JSON.stringify(error.details) : error.details) : ''}\n\nПроверьте корректность URL и доступность сайта.`,
+        model: error.model || "Системная ошибка"
       });
     } finally {
       setLoading(false);
@@ -133,10 +136,10 @@ export default function Home() {
         const errorData = await aiResponse.json();
         const err = new Error(errorData.error || 'Ошибка при анализе заголовков');
         err.details = errorData.details;
+        err.model = errorData.model;
         throw err;
       }
 
-      const aiData = await aiResponse.json();
       setResult({
         text: `**🔍 Анализ влияния мировых СМИ:**\n\n${aiData.translation}`,
         model: aiData.model
@@ -144,8 +147,8 @@ export default function Home() {
 
     } catch (error) {
       setResult({
-        text: `❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + JSON.stringify(error.details) : ''}`,
-        model: "Системная ошибка"
+        text: `❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + (typeof error.details === 'object' ? JSON.stringify(error.details) : error.details) : ''}`,
+        model: error.model || "Системная ошибка"
       });
     } finally {
       setLoading(false);
@@ -177,7 +180,20 @@ export default function Home() {
         {/* Dynamic Headlines Block - Simple List */}
         <div className="w-full max-w-4xl mb-12 text-left">
           <div className="flex items-center justify-between mb-4 px-2 border-b border-stone-800 pb-2">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-700">Глобальная повестка</h2>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setNewsCategory("global")}
+                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "global" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+              >
+                Глобальная повестка
+              </button>
+              <button
+                onClick={() => setNewsCategory("industry")}
+                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "industry" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+              >
+                Промышленность
+              </button>
+            </div>
             {loadingHeadlines && <div className="w-2 h-2 bg-orange-600 rounded-full animate-ping"></div>}
           </div>
 
@@ -278,7 +294,7 @@ export default function Home() {
                       Использован: {result.model}
                     </span>
                     <span className="text-[9px] font-bold text-orange-900/60 uppercase tracking-widest italic">
-                      Совет: если ответ не полный, повторите через 30-60 сек для восстановления лимитов.
+                      Совет: если ответ отсутствует, повторите через 30-60 сек для восстановления лимитов или попробуйте другую ссылку.
                     </span>
                   </div>
                   <div className="mt-6 pt-6 border-t border-stone-800/50 flex justify-end">
