@@ -28,8 +28,6 @@ export default function Home() {
     fetchHeadlines();
   }, []);
 
-
-
   const handleAction = async (actionType) => {
     if (!url) {
       alert("Пожалуйста, введите URL статьи");
@@ -38,7 +36,7 @@ export default function Home() {
 
     setLoading(true);
     setActiveAction(actionType);
-    setResult("");
+    setResult(null);
 
     try {
       // First, parse the article
@@ -91,9 +89,15 @@ export default function Home() {
         displayResult = `**📊 Анализ и влияние на рынки:**\n\n${aiData.translation}`;
       }
 
-      setResult(displayResult);
+      setResult({
+        text: displayResult,
+        model: aiData.model
+      });
     } catch (error) {
-      setResult(`❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + JSON.stringify(error.details) : ''}\n\nПроверьте корректность URL и доступность сайта.`);
+      setResult({
+        text: `❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + JSON.stringify(error.details) : ''}\n\nПроверьте корректность URL и доступность сайта.`,
+        model: "Системная ошибка"
+      });
     } finally {
       setLoading(false);
       setActiveAction(null);
@@ -133,10 +137,16 @@ export default function Home() {
       }
 
       const aiData = await aiResponse.json();
-      setResult(`**🔍 Анализ влияния мировых СМИ:**\n\n${aiData.translation}`);
+      setResult({
+        text: `**🔍 Анализ влияния мировых СМИ:**\n\n${aiData.translation}`,
+        model: aiData.model
+      });
 
     } catch (error) {
-      setResult(`❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + JSON.stringify(error.details) : ''}`);
+      setResult({
+        text: `❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + JSON.stringify(error.details) : ''}`,
+        model: "Системная ошибка"
+      });
     } finally {
       setLoading(false);
       setActiveAction(null);
@@ -156,7 +166,10 @@ export default function Home() {
           <h1 className="text-5xl sm:text-6xl font-black tracking-tight uppercase">
             Новостной <span className="bg-gradient-to-r from-orange-500 via-amber-200 to-stone-400 bg-clip-text text-transparent">аналитик</span>
           </h1>
-          <p className="text-stone-500 text-lg sm:text-xl font-medium max-w-2xl mx-auto">
+          <p className="text-stone-600 text-[10px] font-black uppercase tracking-[0.5em] mt-2">
+            Новостные заголовки за {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+          <p className="text-stone-500 text-lg sm:text-xl font-medium max-w-2xl mx-auto pt-2">
             Осмысленный обзор мировых событий и их последствий.
           </p>
         </div>
@@ -205,8 +218,17 @@ export default function Home() {
                   placeholder="https://..."
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="w-full bg-[#121212] border border-stone-800 rounded-sm px-4 py-4 text-stone-300 placeholder-stone-800 focus:outline-none focus:border-orange-900/50 transition-all"
+                  className="w-full bg-[#121212] border border-stone-800 rounded-sm px-4 py-4 pr-12 text-stone-300 placeholder-stone-800 focus:outline-none focus:border-orange-900/50 transition-all font-mono text-sm"
                 />
+                {url && (
+                  <button
+                    onClick={() => setUrl("")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-700 hover:text-orange-700 transition-colors p-1"
+                    title="Очистить"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9v-4m4 4v-4" /></svg>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -249,11 +271,19 @@ export default function Home() {
               ) : (
                 <div className="prose prose-invert max-w-none">
                   <div className="whitespace-pre-wrap leading-relaxed text-stone-400 text-sm font-medium">
-                    {result}
+                    {result.text}
+                  </div>
+                  <div className="mt-4 flex flex-col gap-1 border-stone-900/40 pt-4 border-t">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-stone-700">
+                      Использован: {result.model}
+                    </span>
+                    <span className="text-[9px] font-bold text-orange-900/60 uppercase tracking-widest italic">
+                      Совет: если ответ не полный, повторите через 30-60 сек для восстановления лимитов.
+                    </span>
                   </div>
                   <div className="mt-6 pt-6 border-t border-stone-800/50 flex justify-end">
                     <button
-                      onClick={() => navigator.clipboard.writeText(result)}
+                      onClick={() => navigator.clipboard.writeText(result.text)}
                       className="text-[9px] font-black uppercase text-stone-700 hover:text-orange-600 transition-colors tracking-widest"
                     >
                       Копировать результат
