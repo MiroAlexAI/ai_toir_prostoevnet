@@ -52,6 +52,29 @@ export default function Home() {
         case "telegram":
           displayResult = `**📱 Данные для Telegram-поста:**\n\n**Заголовок:** ${articleData.title}\n**Дата:** ${articleData.date}\n**URL:** ${url}\n\n**Превью контента:**\n${articleData.content.substring(0, 300)}...`;
           break;
+        case "translate":
+          // Call translation API
+          setResult("🔄 Выполняется перевод статьи...");
+
+          const translateResponse = await fetch('/api/translate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: articleData.content,
+              title: articleData.title
+            }),
+          });
+
+          if (!translateResponse.ok) {
+            const errorData = await translateResponse.json();
+            throw new Error(errorData.error || 'Ошибка при переводе');
+          }
+
+          const translationData = await translateResponse.json();
+          displayResult = `**📊 Анализ и влияние на рынки:**\n\n${translationData.translation}`;
+          break;
         default:
           displayResult = JSON.stringify(articleData, null, 2);
       }
@@ -97,7 +120,7 @@ export default function Home() {
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none -z-10 blur-sm" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <ActionButton
                 label="О чем статья?"
                 onClick={() => handleAction("summary")}
@@ -118,6 +141,13 @@ export default function Home() {
                 isLoading={loading && activeAction === "telegram"}
                 disabled={loading}
                 color="pink"
+              />
+              <ActionButton
+                label="Перевод"
+                onClick={() => handleAction("translate")}
+                isLoading={loading && activeAction === "translate"}
+                disabled={loading}
+                color="green"
               />
             </div>
           </div>
@@ -166,6 +196,7 @@ function ActionButton({ label, onClick, isLoading, disabled, color }) {
     blue: "from-blue-600 to-blue-400 hover:shadow-blue-500/25",
     purple: "from-violet-600 to-violet-400 hover:shadow-violet-500/25",
     pink: "from-fuchsia-600 to-pink-400 hover:shadow-pink-500/25",
+    green: "from-emerald-600 to-green-400 hover:shadow-emerald-500/25",
   };
 
   return (
