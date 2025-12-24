@@ -48,33 +48,76 @@ export default function Home() {
   };
 
   const toggleSpeech = (text) => {
+    if (!text) return;
+
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       return;
     }
 
-    // Очистка markdown для чистого чтения
+    // Принудительно останавливаем любой текущий синтез перед началом
+    window.speechSynthesis.cancel();
+
+    // Глубокая очистка текста от Markdown и лишних символов
     const cleanText = text
-      .replace(/[*#_>`~]/g, '') // Удаляем спецсимволы markdown
+      .replace(/#{1,6}\s?/g, '') // Удаляем решетки заголовков ###
+      .replace(/\*\*/g, '')      // Удаляем жирный шрифт **
+      .replace(/\*/g, '')        // Удаляем курсив или маркеры *
+      .replace(/__/g, '')        // Удаляем подчеркивание __
+      .replace(/`/g, '')         // Удаляем код `
       .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Оставляем только текст ссылок
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Удаляем эмодзи
+      .replace(/^\s*[-+*]\s+/gm, '. ') // Превращаем маркеры списков в начале строк в точки
+      .replace(/\n+/g, '. ')     // Заменяем переносы строк на точки для пауз
+      .replace(/\s+/g, ' ')      // Схлопываем лишние пробелы
       .trim();
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = voiceSpeed;
-    utterance.pitch = 0.7; // Низкий тембр
+    if (!cleanText) return;
 
-    // Автоматический подбор лучшего женского голоса
-    const russianVoices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('ru'));
-    const femaleVoice = russianVoices.find(v => v.name.toLowerCase().includes('irina') || v.name.toLowerCase().includes('katya') || v.name.toLowerCase().includes('elena')) || russianVoices[0];
+    // Разбиваем текст на чанки (предложения)
+    const chunks = cleanText.split(/(?<=[.!?])\s+(?=[А-ЯA-Z])|(?<=[.!?])\s*$/).filter(c => c.trim().length > 0);
 
-    if (femaleVoice) utterance.voice = femaleVoice;
+    // Если split не сработал или текст короткий, используем весь текст
+    const finalChunks = chunks.length > 0 ? chunks : [cleanText];
 
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    const voices = window.speechSynthesis.getVoices();
+    const russianVoices = voices.filter(v => v.lang.startsWith('ru'));
+    const voice = russianVoices.find(v =>
+      v.name.toLowerCase().includes('irina') ||
+      v.name.toLowerCase().includes('katya') ||
+      v.name.toLowerCase().includes('elena') ||
+      v.name.toLowerCase().includes('google')
+    ) || russianVoices[0];
 
     setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+
+    // Запускаем с микро-задержкой, чтобы браузер успел обработать команду cancel()
+    setTimeout(() => {
+      chunks.forEach((chunk, index) => {
+        const trimmedChunk = chunk.trim();
+        if (!trimmedChunk) return;
+
+        const utterance = new SpeechSynthesisUtterance(trimmedChunk);
+        utterance.rate = voiceSpeed;
+        utterance.pitch = 0.7; // Низкий тембр
+        if (voice) utterance.voice = voice;
+
+        // Сбрасываем флаг только на последнем фрагменте
+        if (index === chunks.length - 1) {
+          utterance.onend = () => setIsSpeaking(false);
+        }
+
+        utterance.onerror = (e) => {
+          if (e.error !== 'interrupted' && e.error !== 'canceled') {
+            console.error("Chunk Speech error:", e.error);
+          }
+          if (index === chunks.length - 1) setIsSpeaking(false);
+        };
+
+        window.speechSynthesis.speak(utterance);
+      });
+    }, 50);
   };
 
   const fetchStats = async () => {
@@ -399,7 +442,7 @@ export default function Home() {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-[9px] font-black text-orange-900 uppercase tracking-widest">
-                        {item.date} • {item.model}
+                        {item.date}
                       </span>
                       {item.url && (
                         item.url.startsWith('http') ? (
@@ -536,9 +579,6 @@ export default function Home() {
                     </ReactMarkdown>
                   </div>
                   <div className="mt-4 flex flex-col gap-1 border-stone-900/40 pt-4 border-t">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-stone-700">
-                      Использован: {result.model}
-                    </span>
                     <span className="text-[9px] font-bold text-orange-900/60 uppercase tracking-widest italic">
                       Совет: если ответ отсутствует, повторите через 30-60 сек для восстановления лимитов или попробуйте другую ссылку.
                     </span>
