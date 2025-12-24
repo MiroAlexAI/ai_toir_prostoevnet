@@ -13,16 +13,40 @@ export default function Home() {
 
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [stats, setStats] = useState({ total_requests: 0, telegram_posts: 0, analytics: 0, headlines: 0 });
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+        if (data.history) setHistory(data.history);
+      }
+    } catch (e) {
+      console.error("Failed to fetch stats/history", e);
+    }
+  };
+
+  const updateGlobalStats = async (type, entry) => {
+    try {
+      const res = await fetch('/api/stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, entry })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+        if (data.history) setHistory(data.history);
+      }
+    } catch (e) {
+      console.error("Failed to update stats/history", e);
+    }
+  };
 
   useEffect(() => {
-    const savedHistory = localStorage.getItem("news_history");
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Failed to parse history", e);
-      }
-    }
+    fetchStats();
   }, []);
 
   const addToHistory = (text, model, sourceUrl, title) => {
@@ -113,7 +137,14 @@ export default function Home() {
       };
 
       setResult(finalResult);
-      addToHistory(displayResult, aiData.model, url, articleData.title);
+      updateGlobalStats(actionType, {
+        id: Date.now(),
+        text: displayResult,
+        model: aiData.model,
+        url: url,
+        title: articleData.title || "Анализ",
+        date: new Date().toLocaleString('ru-RU')
+      });
 
     } catch (error) {
       setResult({
@@ -169,7 +200,14 @@ export default function Home() {
         model: aiData.model
       });
 
-      addToHistory(displayResult, aiData.model, null, "Сводка заголовков");
+      updateGlobalStats('headlines', {
+        id: Date.now(),
+        text: displayResult,
+        model: aiData.model,
+        url: null,
+        title: "Сводка заголовков",
+        date: new Date().toLocaleString('ru-RU')
+      });
 
     } catch (error) {
       setResult({
@@ -200,6 +238,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchHeadlines(newsCategory);
+    fetchStats();
   }, [newsCategory, fetchHeadlines]);
 
   return (
@@ -248,6 +287,27 @@ export default function Home() {
             </div>
             {loadingHeadlines && newsCategory !== "history" && <div className="w-2 h-2 bg-orange-600 rounded-full animate-ping"></div>}
           </div>
+
+          {newsCategory === "history" && (
+            <div className="grid grid-cols-4 gap-2 mb-6 px-4 py-3 bg-orange-950/10 border border-orange-900/10 rounded-sm">
+              <div className="text-center">
+                <p className="text-[10px] font-black text-orange-900 uppercase tracking-tighter">Всего</p>
+                <p className="text-lg font-mono text-stone-200">{stats.total_requests}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-tighter">TG Посты</p>
+                <p className="text-lg font-mono text-stone-400">{stats.telegram_posts}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-tighter">Анализ</p>
+                <p className="text-lg font-mono text-stone-400">{stats.analytics}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-tighter">Сводки</p>
+                <p className="text-lg font-mono text-stone-400">{stats.headlines}</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1">
             {newsCategory === "history" ? (
