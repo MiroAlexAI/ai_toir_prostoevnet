@@ -20,14 +20,19 @@ export default function Home() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(1.25); // 1.0, 1.25, 1.4
   const [availableVoices, setAvailableVoices] = useState([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const loadVoices = () => {
+      if (!window.speechSynthesis) return;
       const voices = window.speechSynthesis.getVoices();
       setAvailableVoices(voices.filter(v => v.lang.startsWith('ru')));
     };
     loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
 
     return () => {
       window.speechSynthesis?.cancel();
@@ -35,10 +40,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     const savedTheme = localStorage.getItem("app_theme") || "dark";
     setTheme(savedTheme);
     document.documentElement.setAttribute("data-theme", savedTheme);
-  }, []);
+  }, [mounted]);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
@@ -353,32 +359,34 @@ export default function Home() {
       <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-orange-900/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-stone-800/5 rounded-full blur-[120px] pointer-events-none" />
 
+      {/* Theme Toggle - Fixed for mobile accessibility */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-[var(--card-bg)] backdrop-blur-lg border border-[var(--border-color)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--accent)] transition-all hover:scale-105 active:scale-95 shadow-xl"
+        title="Переключить тему"
+      >
+        {theme === "dark" ? (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
+            <span className="hidden sm:inline">День</span>
+          </>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-stone-700"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+            <span className="hidden sm:inline">Ночь</span>
+          </>
+        )}
+      </button>
+
       <main className="flex-grow flex flex-col items-center justify-start p-6 sm:p-24 relative z-10 text-center">
 
         <div className="mb-12 space-y-4 relative group">
-          <button
-            onClick={toggleTheme}
-            className="absolute -top-12 sm:-top-16 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--accent)] transition-all group-hover:scale-105 active:scale-95"
-            title="Переключить тему"
-          >
-            {theme === "dark" ? (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
-                <span>День</span>
-              </>
-            ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-stone-700"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
-                <span>Ночь</span>
-              </>
-            )}
-          </button>
 
           <h1 className="text-5xl sm:text-6xl font-black tracking-tight uppercase">
             Новостной <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-stone-500 bg-clip-text text-transparent">аналитик</span>
           </h1>
-          <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.5em] mt-2 opacity-60">
-            Новостные заголовки за {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+          <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.5em] mt-2 opacity-60 h-[10px]">
+            {mounted && `Новостные заголовки за ${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}`}
           </p>
           <p className="text-[var(--text-muted)] text-lg sm:text-xl font-medium max-w-2xl mx-auto pt-2">
             Осмысленный обзор мировых событий и их последствий.
