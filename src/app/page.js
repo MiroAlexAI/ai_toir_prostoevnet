@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -11,24 +11,36 @@ export default function Home() {
   const [loadingHeadlines, setLoadingHeadlines] = useState(true);
   const [newsCategory, setNewsCategory] = useState("global"); // "global" or "industry"
 
-  const fetchHeadlines = async (category) => {
-    setLoadingHeadlines(true);
-    try {
-      const response = await fetch(`/api/headlines?category=${category}`);
-      if (response.ok) {
-        const data = await response.json();
-        setHeadlines(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch headlines:", error);
-    } finally {
-      setLoadingHeadlines(false);
-    }
-  };
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    fetchHeadlines(newsCategory);
-  }, [newsCategory]);
+    const savedHistory = localStorage.getItem("news_history");
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Failed to parse history", e);
+      }
+    }
+  }, []);
+
+  const addToHistory = (text, model, sourceUrl, title) => {
+    const newEntry = {
+      id: Date.now(),
+      text,
+      model,
+      url: sourceUrl,
+      title: title || "Анализ",
+      date: new Date().toLocaleString('ru-RU')
+    };
+
+    setHistory(prev => {
+      const updated = [newEntry, ...prev].slice(0, 5);
+      localStorage.setItem("news_history", JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleAction = async (actionType) => {
     if (!url) {
@@ -95,10 +107,14 @@ export default function Home() {
         displayResult = `**📊 Анализ и влияние на рынки:**\n\n${aiData.translation}`;
       }
 
-      setResult({
+      const finalResult = {
         text: displayResult,
         model: aiData.model
-      });
+      };
+
+      setResult(finalResult);
+      addToHistory(displayResult, aiData.model, url, articleData.title);
+
     } catch (error) {
       setResult({
         text: `❌ **Ошибка:** ${error.message}${error.details ? '\n\nДетали: ' + (typeof error.details === 'object' ? JSON.stringify(error.details) : error.details) : ''}\n\nПроверьте корректность URL и доступность сайта.`,
@@ -122,7 +138,6 @@ export default function Home() {
       text: "🕵️‍♂️ Изучаем информационную повестку...",
       model: "Система"
     });
-
     try {
       const headlinesText = headlines.map(h => `- [${h.source}] ${h.title}`).join('\n');
 
@@ -147,10 +162,14 @@ export default function Home() {
       }
 
       const aiData = await aiResponse.json();
+      const displayResult = `**🔍 Анализ влияния мировых СМИ:**\n\n${aiData.translation}`;
+
       setResult({
-        text: `**🔍 Анализ влияния мировых СМИ:**\n\n${aiData.translation}`,
+        text: displayResult,
         model: aiData.model
       });
+
+      addToHistory(displayResult, aiData.model, null, "Сводка заголовков");
 
     } catch (error) {
       setResult({
@@ -162,6 +181,26 @@ export default function Home() {
       setActiveAction(null);
     }
   };
+
+  const fetchHeadlines = useCallback(async (category) => {
+    if (category === "history") return;
+    setLoadingHeadlines(true);
+    try {
+      const response = await fetch(`/api/headlines?category=${category}`);
+      if (response.ok) {
+        const data = await response.json();
+        setHeadlines(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch headlines:", error);
+    } finally {
+      setLoadingHeadlines(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHeadlines(newsCategory);
+  }, [newsCategory, fetchHeadlines]);
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-[#d4d4d4] font-sans selection:bg-orange-500/30 selection:text-white flex flex-col relative overflow-hidden">
@@ -200,30 +239,80 @@ export default function Home() {
               >
                 Промышленность
               </button>
+              <button
+                onClick={() => setNewsCategory("history")}
+                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "history" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+              >
+                Журнал
+              </button>
             </div>
-            {loadingHeadlines && <div className="w-2 h-2 bg-orange-600 rounded-full animate-ping"></div>}
+            {loadingHeadlines && newsCategory !== "history" && <div className="w-2 h-2 bg-orange-600 rounded-full animate-ping"></div>}
           </div>
 
           <div className="space-y-1">
-            {headlines.length > 0 ? (
-              headlines.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setUrl(item.link)}
-                  className="w-full group flex items-center gap-4 py-3 px-4 hover:bg-stone-900/40 transition-colors border-b border-stone-900/20 last:border-0 text-left"
-                >
-                  <span className="text-[9px] font-black text-stone-600 uppercase w-16 shrink-0 group-hover:text-orange-900 transition-colors">
-                    {item.source}
-                  </span>
-                  <p className="text-sm font-medium text-stone-400 group-hover:text-stone-100 transition-colors line-clamp-1">
-                    {item.title}
-                  </p>
-                </button>
-              ))
-            ) : !loadingHeadlines && (
-              <div className="py-8 text-center text-stone-800 text-xs italic">
-                Информационные каналы пусты. Введите URL вручную.
-              </div>
+            {newsCategory === "history" ? (
+              history.length > 0 ? (
+                history.map((item) => (
+                  <div
+                    key={item.id}
+                    className="w-full group py-4 px-4 bg-stone-900/10 hover:bg-stone-900/40 transition-colors border-b border-stone-900/20 last:border-0 text-left"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[9px] font-black text-orange-900 uppercase tracking-widest">
+                        {item.date} • {item.model}
+                      </span>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[9px] font-black text-stone-600 hover:text-orange-600 uppercase transition-colors"
+                        >
+                          Источник ↗
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-sm font-bold text-stone-200 mb-2">{item.title}</p>
+                    <div
+                      className="text-xs text-stone-500 line-clamp-3 cursor-pointer hover:text-stone-300 transition-colors"
+                      onClick={() => {
+                        setResult({ text: item.text, model: item.model });
+                        setNewsCategory("global"); // Switch back to show result in main area
+                        setTimeout(() => {
+                          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                        }, 100);
+                      }}
+                    >
+                      {item.text.replace(/\*\*/g, '')}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-stone-800 text-xs italic uppercase tracking-widest">
+                  Журнал пуст. Начните анализ статей.
+                </div>
+              )
+            ) : (
+              headlines.length > 0 ? (
+                headlines.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setUrl(item.link)}
+                    className="w-full group flex items-center gap-4 py-3 px-4 hover:bg-stone-900/40 transition-colors border-b border-stone-900/20 last:border-0 text-left"
+                  >
+                    <span className="text-[9px] font-black text-stone-600 uppercase w-16 shrink-0 group-hover:text-orange-900 transition-colors">
+                      {item.source}
+                    </span>
+                    <p className="text-sm font-medium text-stone-400 group-hover:text-stone-100 transition-colors line-clamp-1">
+                      {item.title}
+                    </p>
+                  </button>
+                ))
+              ) : !loadingHeadlines && (
+                <div className="py-8 text-center text-stone-800 text-xs italic">
+                  Информационные каналы пусты. Введите URL вручную.
+                </div>
+              )
             )}
           </div>
         </div>
