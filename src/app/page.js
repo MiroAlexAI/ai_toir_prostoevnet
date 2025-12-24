@@ -16,6 +16,20 @@ export default function Home() {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [stats, setStats] = useState({ total_requests: 0, telegram_posts: 0, analytics: 0, headlines: 0 });
+  const [theme, setTheme] = useState("dark"); // "dark" or "light"
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("app_theme") || "dark";
+    setTheme(savedTheme);
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("app_theme", newTheme);
+  };
 
   const fetchStats = async () => {
     try {
@@ -244,22 +258,40 @@ export default function Home() {
   }, [newsCategory, fetchHeadlines]);
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-[#d4d4d4] font-sans selection:bg-orange-500/30 selection:text-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans selection:bg-orange-500/30 selection:text-white flex flex-col relative overflow-hidden transition-colors duration-500">
 
       {/* Background decorations - Desert Vibes */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-orange-900/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-stone-800/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-orange-900/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-stone-800/5 rounded-full blur-[120px] pointer-events-none" />
 
       <main className="flex-grow flex flex-col items-center justify-start p-6 sm:p-24 relative z-10 text-center">
 
-        <div className="mb-12 space-y-4">
+        <div className="mb-12 space-y-4 relative group">
+          <button
+            onClick={toggleTheme}
+            className="absolute -top-12 sm:-top-16 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--accent)] transition-all group-hover:scale-105 active:scale-95"
+            title="Переключить тему"
+          >
+            {theme === "dark" ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
+                <span>День</span>
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-stone-700"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+                <span>Ночь</span>
+              </>
+            )}
+          </button>
+
           <h1 className="text-5xl sm:text-6xl font-black tracking-tight uppercase">
-            Новостной <span className="bg-gradient-to-r from-orange-500 via-amber-200 to-stone-400 bg-clip-text text-transparent">аналитик</span>
+            Новостной <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-stone-500 bg-clip-text text-transparent">аналитик</span>
           </h1>
-          <p className="text-stone-600 text-[10px] font-black uppercase tracking-[0.5em] mt-2">
+          <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.5em] mt-2 opacity-60">
             Новостные заголовки за {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
-          <p className="text-stone-500 text-lg sm:text-xl font-medium max-w-2xl mx-auto pt-2">
+          <p className="text-[var(--text-muted)] text-lg sm:text-xl font-medium max-w-2xl mx-auto pt-2">
             Осмысленный обзор мировых событий и их последствий.
           </p>
         </div>
@@ -387,11 +419,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="w-full max-w-3xl bg-stone-900/20 backdrop-blur-md border border-stone-800/50 rounded-sm p-8 shadow-2xl transition-all duration-500 hover:border-orange-900/20">
+        <div className="w-full max-w-3xl bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border-color)] rounded-sm p-8 shadow-2xl transition-all duration-500 hover:border-orange-900/20">
 
           <div className="space-y-6">
             <div className="text-left space-y-2">
-              <label className="text-[10px] font-black text-orange-700 uppercase tracking-[0.2em] ml-1">
+              <label className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] ml-1">
                 Введите URL новостной статьи
               </label>
               <div className="relative group">
@@ -400,7 +432,7 @@ export default function Home() {
                   placeholder="https://..."
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="w-full bg-[#121212] border border-stone-800 rounded-sm px-4 py-4 pr-12 text-stone-300 placeholder-stone-800 focus:outline-none focus:border-orange-900/50 transition-all font-mono text-sm"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-sm px-4 py-4 pr-12 text-[var(--foreground)] placeholder-stone-600 focus:outline-none focus:border-[var(--accent)] transition-all font-mono text-sm"
                 />
                 {url && (
                   <button
@@ -416,18 +448,18 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <ActionButton
-                label="Пост для Telegram"
+                label="Сократить для Telegram"
                 onClick={() => handleAction("telegram")}
                 isLoading={loading && activeAction === "telegram"}
                 disabled={loading}
                 color="orange"
               />
               <ActionButton
-                label="Аналитика"
+                label="Подробная аналитика статьи"
                 onClick={() => handleAction("analytics")}
                 isLoading={loading && activeAction === "analytics"}
                 disabled={loading}
-                color="stone"
+                color="orange"
               />
             </div>
 
@@ -444,10 +476,10 @@ export default function Home() {
 
           {/* Result Block */}
           {(result || loading) && (
-            <div className={`mt-8 p-8 rounded-sm border border-stone-800/50 text-left transition-all duration-700 ${loading ? 'bg-stone-900/10 animate-pulse h-32 text-stone-700' : 'bg-black/10'}`}>
+            <div className={`mt-8 p-8 rounded-sm border border-[var(--border-color)] text-left transition-all duration-700 ${loading ? 'bg-orange-900/5 animate-pulse h-32 text-[var(--text-muted)]' : 'bg-black/5'}`}>
               {loading ? (
-                <div className="flex items-center justify-center h-full gap-3 text-[10px] font-bold uppercase tracking-widest text-stone-600">
-                  <div className="w-1 h-1 bg-orange-900 rounded-full animate-ping" />
+                <div className="flex items-center justify-center h-full gap-3 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  <div className="w-1 h-1 bg-[var(--accent)] rounded-full animate-ping" />
                   <span>Системный анализ...</span>
                 </div>
               ) : (
@@ -482,11 +514,11 @@ export default function Home() {
       </main>
 
       <footer className="py-8 text-center space-y-2 relative z-10">
-        <p className="text-stone-800 text-[9px] font-black tracking-[0.4em] uppercase">
+        <p className="text-[var(--text-muted)] text-[9px] font-black tracking-[0.4em] uppercase opacity-40">
           A.I. ANALYST • DESERT OPS • V1.5
         </p>
-        <p className="text-stone-600 text-[10px] font-bold uppercase tracking-widest">
-          поблагодарить автора telegram <a href="https://t.me/krabig" target="_blank" rel="noopener noreferrer" className="text-orange-900 hover:text-orange-500 transition-colors">@krabig</a>
+        <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest opacity-60">
+          поблагодарить автора telegram <a href="https://t.me/krabig" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:opacity-80 transition-opacity">@krabig</a>
         </p>
       </footer>
     </div>
@@ -509,12 +541,12 @@ function ActionButton({ label, onClick, isLoading, disabled, color }) {
       `}
     >
       <span className={`absolute inset-0 bg-gradient-to-br ${colorStyles[color]} opacity-80 group-hover:opacity-100 transition-opacity`} />
-      <div className="relative h-full bg-[#121212]/90 backdrop-blur-sm rounded-sm px-6 py-4 flex items-center justify-center gap-3 group-hover:bg-[#121212]/60 transition-colors border border-white/5">
+      <div className="relative h-full bg-[var(--input-bg)]/90 backdrop-blur-sm rounded-sm px-6 py-4 flex items-center justify-center gap-3 group-hover:bg-[var(--input-bg)]/60 transition-colors border border-white/5">
         <span className="font-bold text-[11px] uppercase tracking-widest">
           {label}
         </span>
         {isLoading && (
-          <div className="w-3 h-3 border-2 border-stone-500 border-t-orange-500 rounded-full animate-spin" />
+          <div className="w-3 h-3 border-2 border-stone-500 border-t-[var(--accent)] rounded-full animate-spin" />
         )}
       </div>
     </button>
