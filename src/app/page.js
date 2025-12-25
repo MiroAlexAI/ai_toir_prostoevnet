@@ -242,9 +242,15 @@ export default function Home() {
         displayResult = `**📊 Анализ и влияние на рынки:**\n\n${aiData.translation}`;
       }
 
+      const selectedHeadline = headlines.find(h => h.link === url);
+      const resultTitle = selectedHeadline ? selectedHeadline.title : (articleData.title || "Анализ статьи");
+      const resultSource = selectedHeadline ? selectedHeadline.source : (new URL(url).hostname.replace('www.', '').split('.')[0].toUpperCase());
+
       const finalResult = {
         text: displayResult,
-        model: aiData.model
+        model: aiData.model,
+        title: resultTitle,
+        source: resultSource
       };
 
       setResult(finalResult);
@@ -253,7 +259,8 @@ export default function Home() {
         text: displayResult,
         model: aiData.model,
         url: url,
-        title: articleData.title || "Анализ",
+        title: resultTitle,
+        source: resultSource,
         date: new Date().toLocaleString('ru-RU')
       });
 
@@ -308,7 +315,9 @@ export default function Home() {
 
       setResult({
         text: displayResult,
-        model: aiData.model
+        model: aiData.model,
+        title: "Сводка новостных заголовков",
+        source: "GLOBAL MEDIA"
       });
 
       updateGlobalStats('headlines', {
@@ -395,19 +404,24 @@ export default function Home() {
 
         {/* Dynamic Headlines Block - Simple List */}
         <div className="w-full max-w-4xl mb-12 text-left">
-          <div className="flex items-center justify-between mb-4 px-2 border-b border-stone-800 pb-2">
+          {/* Steps Indicator - Tooltip-like */}
+          <div className="flex items-center gap-6 mb-4 px-2 border-b border-stone-800/30 pb-4">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orange-600 text-[10px] font-black text-white shrink-0">1</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-orange-900/60">Выберите новость</span>
+            </div>
             <div className="flex gap-4">
               <button
                 onClick={() => setNewsCategory("global")}
                 className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "global" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
               >
-                Глобальная повестка
+                Глобальная
               </button>
               <button
                 onClick={() => setNewsCategory("industry")}
                 className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "industry" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
               >
-                Промышленность
+                Отраслевая
               </button>
               <button
                 onClick={() => setNewsCategory("history")}
@@ -416,7 +430,7 @@ export default function Home() {
                 Журнал
               </button>
             </div>
-            {loadingHeadlines && newsCategory !== "history" && <div className="w-2 h-2 bg-orange-600 rounded-full animate-ping"></div>}
+            {loadingHeadlines && newsCategory !== "history" && <div className="ml-auto w-2 h-2 bg-orange-600 rounded-full animate-ping"></div>}
           </div>
 
           {newsCategory === "history" && (
@@ -496,15 +510,24 @@ export default function Home() {
                 headlines.map((item, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setUrl(item.link)}
-                    className="w-full group flex items-center gap-4 py-3 px-4 hover:bg-stone-900/40 transition-colors border-b border-stone-900/20 last:border-0 text-left"
+                    onClick={() => {
+                      setUrl(item.link);
+                      setTimeout(() => {
+                        const target = document.getElementById('action-card');
+                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    }}
+                    className={`w-full group flex items-center gap-4 py-3 px-4 transition-all border-b border-stone-900/20 last:border-0 text-left ${url === item.link ? 'bg-orange-800/10 border-l-2 border-l-orange-600' : 'hover:bg-stone-900/40'}`}
                   >
-                    <span className="text-[9px] font-black text-stone-600 uppercase w-16 shrink-0 group-hover:text-orange-900 transition-colors">
+                    <span className={`text-[9px] font-black uppercase w-16 shrink-0 transition-colors ${url === item.link ? 'text-orange-600' : 'text-stone-600 group-hover:text-orange-900'}`}>
                       {item.source}
                     </span>
-                    <p className="text-sm font-medium text-stone-400 group-hover:text-stone-100 transition-colors line-clamp-1">
+                    <p className={`text-sm font-medium transition-colors line-clamp-1 ${url === item.link ? 'text-orange-100 font-bold' : 'text-stone-400 group-hover:text-stone-100'}`}>
                       {item.title}
                     </p>
+                    {url === item.link && (
+                      <div className="ml-auto w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,88,12,0.6)]"></div>
+                    )}
                   </button>
                 ))
               ) : !loadingHeadlines && (
@@ -516,13 +539,18 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="w-full max-w-3xl bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border-color)] rounded-sm p-8 shadow-2xl transition-all duration-500 hover:border-orange-900/20">
+        <div id="action-card" className={`w-full max-w-3xl bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border-color)] rounded-sm p-8 shadow-2xl transition-all duration-500 ${url && !result ? 'ring-2 ring-orange-600/30 shadow-[0_0_40px_rgba(234,88,12,0.1)]' : 'hover:border-orange-900/20'}`}>
 
           <div className="space-y-6">
             <div className="text-left space-y-2">
-              <label className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] ml-1">
-                Введите URL новостной статьи
-              </label>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black text-white shrink-0 transition-colors ${url ? 'bg-green-600' : 'bg-orange-600'}`}>
+                  {url ? '✓' : '2'}
+                </span>
+                <label className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em]">
+                  {url ? 'Новость выбрана' : 'Выберите действие'}
+                </label>
+              </div>
               <div className="relative group">
                 <input
                   type="url"
@@ -581,6 +609,21 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="prose prose-invert max-w-none">
+                  {result.title && (
+                    <div className="mb-6 pb-4 border-b border-stone-800/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-600/10 px-2 py-0.5 rounded-sm border border-orange-600/20">
+                          {result.source || "ИСТОЧНИК"}
+                        </span>
+                        <span className="text-[9px] font-bold text-stone-600 uppercase tracking-widest">
+                          {new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <h2 className="text-xl font-black text-stone-100 uppercase tracking-tight leading-tight">
+                        {result.title}
+                      </h2>
+                    </div>
+                  )}
                   <div className="leading-relaxed text-stone-400 text-sm font-medium markdown-content">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {result.text}
@@ -641,7 +684,7 @@ export default function Home() {
           )}
 
         </div>
-      </main>
+      </main >
 
       <footer className="py-8 text-center space-y-2 relative z-10">
         <p className="text-[var(--text-muted)] text-[9px] font-black tracking-[0.4em] uppercase opacity-40">
@@ -651,7 +694,7 @@ export default function Home() {
           поблагодарить автора telegram <a href="https://t.me/krabig" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:opacity-80 transition-opacity">@krabig</a>
         </p>
       </footer>
-    </div>
+    </div >
   );
 }
 
