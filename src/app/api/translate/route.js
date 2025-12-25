@@ -11,6 +11,7 @@ export async function POST(request) {
 
         // Собираем все доступные ключи
         const googleKey = process.env.GOOGLE_API_KEY;
+        const hfKey = process.env.HF_API_KEY;
         const openRouterKeys = [
             process.env.OPENROUTER_API_KEY,
             process.env.OPENROUTER_API_KEY2,
@@ -66,8 +67,41 @@ ${content}`;
             'tngtech/tng-r1t-chimera:free'
         ];
 
-        // 1. Пытаемся вызвать прямой Google API подороже (если есть ключ)
-        if (googleKey) {
+        // 1. Пытаемся вызвать Hugging Face GLM-4.5-Air (Приоритет №1)
+        if (hfKey) {
+            try {
+                console.log("Attempting Hugging Face GLM-4.5-Air...");
+                const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${hfKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: "zai-org/GLM-4.5-Air:zai-org",
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature: 0.3,
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // GLM-4.5-Air может возвращать ответ в reasoning_content через этот роутер
+                    resultText = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning_content;
+                    if (resultText) {
+                        usedModel = "Hugging Face (GLM-4.5-Air)";
+                    }
+                } else {
+                    lastError = await response.json();
+                    console.warn("Hugging Face API failed:", lastError);
+                }
+            } catch (e) {
+                console.error("Hugging Face Error:", e.message);
+            }
+        }
+
+        // 2. Пытаемся вызвать прямой Google API подороже (если есть ключ)
+        if (!resultText && googleKey) {
             try {
                 console.log("Attempting direct Google Gemini API...");
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${googleKey}`, {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { kv } from '@vercel/kv';
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
@@ -131,7 +132,17 @@ export async function GET(request) {
         'oee', 'downtime', 'failure', 'root cause', 'rca', 'mro', 'availability', 'integrity'
     ];
 
+    const CACHE_KEY = `headlines_${category}`;
+    const CACHE_TTL = 900; // 15 минут в секундах
+
     try {
+        // Пробуем получить из кеша
+        const cachedData = await kv.get(CACHE_KEY);
+        if (cachedData) {
+            console.log(`>>> Serving ${category} headlines from cache`);
+            return NextResponse.json(cachedData);
+        }
+
         const allHeadlines = [];
 
         const regionPromises = regionConfigs.map(async (region) => {
@@ -150,7 +161,7 @@ export async function GET(request) {
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                             'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
                         },
-                        timeout: 15000
+                        timeout: 5000 // Сокращаем до 5 секунд для Vercel
                     });
 
                     const data = response.data;
@@ -226,8 +237,14 @@ export async function GET(request) {
             });
         });
 
+        // Сохраняем в кеш перед отправкой
+        if (allHeadlines.length > 0) {
+            await kv.set(CACHE_KEY, allHeadlines, { ex: CACHE_TTL });
+        }
+
         return NextResponse.json(allHeadlines);
     } catch (error) {
+        console.error("Headlines API Error:", error.message);
         return NextResponse.json([]);
     }
 }
