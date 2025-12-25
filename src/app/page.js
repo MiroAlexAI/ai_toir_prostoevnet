@@ -208,8 +208,12 @@ export default function Home() {
       }
 
       // Call AI API for both actions
+      let loadingMessage = "🧐 Анализируем влияние на рынки...";
+      if (actionType === 'telegram') loadingMessage = "✍️ Генерируем Telegram-пост...";
+      if (actionType === 'summarize') loadingMessage = "📝 Сокращаем текст статьи...";
+
       setResult({
-        text: actionType === 'telegram' ? "✍️ Генерируем Telegram-пост..." : "🧐 Анализируем влияние на рынки...",
+        text: loadingMessage,
         model: "Система"
       });
 
@@ -238,6 +242,8 @@ export default function Home() {
       let displayResult = "";
       if (actionType === "telegram") {
         displayResult = `**📱 Готовый пост для Telegram:**\n\n${aiData.translation}`;
+      } else if (actionType === "summarize") {
+        displayResult = `**📝 Сокращенный перевод (оригинал -30%):**\n\n${aiData.translation}`;
       } else {
         displayResult = `**📊 Анализ и влияние на рынки:**\n\n${aiData.translation}`;
       }
@@ -362,7 +368,7 @@ export default function Home() {
   }, [newsCategory, fetchHeadlines]);
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans selection:bg-orange-500/30 selection:text-white flex flex-col relative overflow-hidden transition-colors duration-500">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans selection:bg-orange-500/30 selection:text-white flex flex-col relative transition-colors duration-500">
 
       {/* Background decorations - Desert Vibes */}
       <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-orange-900/5 rounded-full blur-[120px] pointer-events-none" />
@@ -392,7 +398,7 @@ export default function Home() {
         <div className="mb-12 space-y-4 relative group">
 
           <h1 className="text-5xl sm:text-6xl font-black tracking-tight uppercase">
-            Новостной <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-stone-500 bg-clip-text text-transparent">аналитик</span>
+            Новостной <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-stone-500 bg-clip-text text-transparent">ИИ-аналитик</span>
           </h1>
           <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.5em] mt-2 opacity-60 h-[10px]">
             {mounted && `Новостные заголовки за ${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}`}
@@ -417,34 +423,34 @@ export default function Home() {
                 {loadingHeadlines && <span className="text-[8px] italic lowercase opacity-40 animate-pulse">(обновление...)</span>}
               </span>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-6 overflow-x-auto pb-2 no-scrollbar">
               <button
                 onClick={() => setNewsCategory("global")}
-                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "global" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+                className={`text-sm font-bold uppercase tracking-tight transition-all border-b-2 px-1 pb-1 shrink-0 ${newsCategory === "global" ? "text-[var(--accent)] border-[var(--accent)]" : "text-stone-500 border-transparent hover:text-stone-400"}`}
               >
                 Глобальная
               </button>
               <button
                 onClick={() => setNewsCategory("industry")}
-                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "industry" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+                className={`text-sm font-bold uppercase tracking-tight transition-all border-b-2 px-1 pb-1 shrink-0 ${newsCategory === "industry" ? "text-[var(--accent)] border-[var(--accent)]" : "text-stone-500 border-transparent hover:text-stone-400"}`}
               >
                 Отраслевая
               </button>
               <button
                 onClick={() => setNewsCategory("finance")}
-                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "finance" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+                className={`text-sm font-bold uppercase tracking-tight transition-all border-b-2 px-1 pb-1 shrink-0 ${newsCategory === "finance" ? "text-[var(--accent)] border-[var(--accent)]" : "text-stone-500 border-transparent hover:text-stone-400"}`}
               >
                 Финансы
               </button>
               <button
                 onClick={() => setNewsCategory("reliability")}
-                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "reliability" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+                className={`text-sm font-bold uppercase tracking-tight transition-all border-b-2 px-1 pb-1 shrink-0 ${newsCategory === "reliability" ? "text-[var(--accent)] border-[var(--accent)]" : "text-stone-500 border-transparent hover:text-stone-400"}`}
               >
                 ТОиР
               </button>
               <button
                 onClick={() => setNewsCategory("history")}
-                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "history" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+                className={`text-sm font-bold uppercase tracking-tight transition-all border-b-2 px-1 pb-1 shrink-0 ${newsCategory === "history" ? "text-[var(--accent)] border-[var(--accent)]" : "text-stone-500 border-transparent hover:text-stone-400"}`}
               >
                 Журнал
               </button>
@@ -473,88 +479,91 @@ export default function Home() {
             </div>
           )}
 
-          <div className="space-y-1">
-            {newsCategory === "history" ? (
-              history.length > 0 ? (
-                history.map((item) => (
-                  <div
-                    key={item.id}
-                    className="w-full group py-4 px-4 bg-stone-900/10 hover:bg-stone-900/40 transition-colors border-b border-stone-900/20 last:border-0 text-left"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-[9px] font-black text-orange-900 uppercase tracking-widest">
-                        {item.date}
-                      </span>
-                      {item.url && (
-                        item.url.startsWith('http') ? (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[9px] font-black text-stone-600 hover:text-orange-600 uppercase transition-colors"
-                          >
-                            Источник ↗
-                          </a>
-                        ) : (
-                          <span className="text-[9px] font-black text-stone-700 uppercase tracking-tight">
-                            {item.url}
-                          </span>
-                        )
-                      )}
-                    </div>
-                    <p className="text-sm font-bold text-stone-200 mb-2">{item.title}</p>
+          <div className="max-h-[400px] overflow-y-auto pr-2 no-scrollbar custom-scrollbar">
+            <div className="space-y-1">
+              {newsCategory === "history" ? (
+                history.length > 0 ? (
+                  history.map((item) => (
                     <div
-                      className="text-xs text-stone-500 line-clamp-3 cursor-pointer hover:text-stone-300 transition-colors markdown-content"
+                      key={item.id}
+                      className="w-full group py-2 px-3 bg-stone-900/10 hover:bg-stone-900/40 transition-colors border-b border-stone-900/10 last:border-0 text-left"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[9px] font-black text-orange-900 uppercase tracking-widest">
+                          {item.date}
+                        </span>
+                        {item.url && (
+                          item.url.startsWith('http') ? (
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[9px] font-black text-stone-600 hover:text-orange-600 uppercase transition-colors"
+                            >
+                              Источник ↗
+                            </a>
+                          ) : (
+                            <span className="text-[9px] font-black text-stone-700 uppercase tracking-tight">
+                              {item.url}
+                            </span>
+                          )
+                        )}
+                      </div>
+                      <p className="text-[13px] font-bold text-stone-300 mb-1 line-clamp-1">{item.title}</p>
+                      <div
+                        className="text-[11px] text-stone-500 line-clamp-2 cursor-pointer hover:text-stone-300 transition-colors markdown-content"
+                        onClick={() => {
+                          setResult({ text: item.text, model: item.model });
+                          if (item.url) setUrl(item.url);
+                          setTimeout(() => {
+                            const target = document.getElementById('action-card');
+                            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 50);
+                        }}
+                      >
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {item.text}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center text-stone-800 text-xs italic uppercase tracking-widest">
+                    Журнал пуст. Начните анализ статей.
+                  </div>
+                )
+              ) : (
+                headlines.length > 0 ? (
+                  headlines.map((item, idx) => (
+                    <button
+                      key={idx}
                       onClick={() => {
-                        setResult({ text: item.text, model: item.model });
-                        setNewsCategory("global"); // Switch back to show result in main area
+                        setUrl(item.link);
                         setTimeout(() => {
-                          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                          const target = document.getElementById('action-card');
+                          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }, 100);
                       }}
+                      className={`w-full group flex items-center gap-4 py-3 px-4 transition-all border-b border-stone-900/20 last:border-0 text-left ${url === item.link ? 'bg-orange-800/10 border-l-2 border-l-orange-600' : 'hover:bg-stone-900/40'}`}
                     >
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {item.text}
-                      </ReactMarkdown>
-                    </div>
+                      <span className={`text-[9px] font-black uppercase w-16 shrink-0 transition-colors ${url === item.link ? 'text-orange-600' : 'text-stone-600 group-hover:text-orange-900'}`}>
+                        {item.source}
+                      </span>
+                      <p className={`text-sm font-medium transition-colors line-clamp-1 ${url === item.link ? 'text-orange-100 font-bold' : 'text-stone-400 group-hover:text-stone-100'}`}>
+                        {item.title}
+                      </p>
+                      {url === item.link && (
+                        <div className="ml-auto w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,88,12,0.6)]"></div>
+                      )}
+                    </button>
+                  ))
+                ) : !loadingHeadlines && (
+                  <div className="py-8 text-center text-stone-800 text-xs italic">
+                    Информационные каналы пусты. Введите URL вручную.
                   </div>
-                ))
-              ) : (
-                <div className="py-8 text-center text-stone-800 text-xs italic uppercase tracking-widest">
-                  Журнал пуст. Начните анализ статей.
-                </div>
-              )
-            ) : (
-              headlines.length > 0 ? (
-                headlines.map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setUrl(item.link);
-                      setTimeout(() => {
-                        const target = document.getElementById('action-card');
-                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }, 100);
-                    }}
-                    className={`w-full group flex items-center gap-4 py-3 px-4 transition-all border-b border-stone-900/20 last:border-0 text-left ${url === item.link ? 'bg-orange-800/10 border-l-2 border-l-orange-600' : 'hover:bg-stone-900/40'}`}
-                  >
-                    <span className={`text-[9px] font-black uppercase w-16 shrink-0 transition-colors ${url === item.link ? 'text-orange-600' : 'text-stone-600 group-hover:text-orange-900'}`}>
-                      {item.source}
-                    </span>
-                    <p className={`text-sm font-medium transition-colors line-clamp-1 ${url === item.link ? 'text-orange-100 font-bold' : 'text-stone-400 group-hover:text-stone-100'}`}>
-                      {item.title}
-                    </p>
-                    {url === item.link && (
-                      <div className="ml-auto w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,88,12,0.6)]"></div>
-                    )}
-                  </button>
-                ))
-              ) : !loadingHeadlines && (
-                <div className="py-8 text-center text-stone-800 text-xs italic">
-                  Информационные каналы пусты. Введите URL вручную.
-                </div>
-              )
-            )}
+                )
+              )}
+            </div>
           </div>
         </div>
 
@@ -570,22 +579,31 @@ export default function Home() {
                   {url ? 'Новость выбрана' : 'Выберите действие'}
                 </label>
               </div>
-              <div className="relative group">
+              <div className="flex gap-2">
                 <input
                   type="url"
                   placeholder="https://..."
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-sm px-4 py-4 pr-12 text-[var(--foreground)] placeholder-stone-600 focus:outline-none focus:border-[var(--accent)] transition-all font-mono text-sm"
+                  className="flex-grow bg-[var(--input-bg)] border border-[var(--border-color)] rounded-sm px-4 py-4 text-[var(--foreground)] placeholder-stone-600 focus:outline-none focus:border-[var(--accent)] transition-all font-mono text-sm"
                 />
                 {url && (
-                  <button
-                    onClick={() => setUrl("")}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-700 hover:text-orange-700 transition-colors p-1"
-                    title="Очистить"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9v-4m4 4v-4" /></svg>
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => window.open(url, '_blank')}
+                      className="h-full bg-[var(--input-bg)] border border-[var(--border-color)] text-stone-600 hover:text-blue-500 hover:border-blue-500/30 transition-all px-4 rounded-sm"
+                      title="Открыть в новом окне"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                    </button>
+                    <button
+                      onClick={() => setUrl("")}
+                      className="h-full bg-[var(--input-bg)] border border-[var(--border-color)] text-stone-600 hover:text-orange-700 hover:border-orange-700/30 transition-all px-4 rounded-sm"
+                      title="Очистить"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9v-4m4 4v-4" /></svg>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -596,24 +614,28 @@ export default function Home() {
                 onClick={() => handleAction("telegram")}
                 isLoading={loading && activeAction === "telegram"}
                 disabled={loading}
-                color="orange"
+                color="premium"
               />
               <ActionButton
                 label="Подробная аналитика статьи"
                 onClick={() => handleAction("analytics")}
                 isLoading={loading && activeAction === "analytics"}
                 disabled={loading}
-                color="orange"
+                color="premium"
               />
-            </div>
-
-            <div className="pt-2">
               <ActionButton
-                label="📊 Анализ новостных заголовков"
+                label="Сокращенный перевод (-30%)"
+                onClick={() => handleAction("summarize")}
+                isLoading={loading && activeAction === "summarize"}
+                disabled={loading}
+                color="premium"
+              />
+              <ActionButton
+                label="📊 Анализ всех заголовков"
                 onClick={handleHeadlinesAnalysis}
                 isLoading={loading && activeAction === "headlines_analysis"}
                 disabled={loading}
-                color="orange"
+                color="premium"
               />
             </div>
           </div>
@@ -662,7 +684,7 @@ export default function Home() {
                           </button>
                         </div>
                       </div>
-                      <h2 className="text-xl font-black text-stone-100 uppercase tracking-tight leading-tight">
+                      <h2 className="text-xl font-black text-[var(--text-bold)] uppercase tracking-tight leading-tight">
                         {result.title}
                       </h2>
                     </div>
@@ -743,8 +765,7 @@ export default function Home() {
 
 function ActionButton({ label, onClick, isLoading, disabled, color }) {
   const colorStyles = {
-    orange: "from-orange-800 to-orange-600 text-orange-50",
-    stone: "from-stone-800 to-stone-700 text-stone-300",
+    premium: "from-amber-600/80 to-orange-500/80 text-white",
   };
 
   return (
@@ -753,16 +774,16 @@ function ActionButton({ label, onClick, isLoading, disabled, color }) {
       disabled={disabled}
       className={`
         relative overflow-hidden group rounded-sm p-[1px] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300
-        ${disabled ? '' : 'hover:scale-[1.01] active:scale-[0.99]'}
+        ${disabled ? '' : 'hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-orange-500/10'}
       `}
     >
-      <span className={`absolute inset-0 bg-gradient-to-br ${colorStyles[color]} opacity-80 group-hover:opacity-100 transition-opacity`} />
-      <div className="relative h-full bg-[var(--input-bg)]/90 backdrop-blur-sm rounded-sm px-6 py-4 flex items-center justify-center gap-3 group-hover:bg-[var(--input-bg)]/60 transition-colors border border-white/5">
-        <span className="font-bold text-[11px] uppercase tracking-widest">
+      <span className={`absolute inset-0 bg-gradient-to-br ${colorStyles[color]} opacity-90 group-hover:opacity-100 transition-opacity`} />
+      <div className="relative h-full bg-[var(--input-bg)]/95 backdrop-blur-sm rounded-sm px-4 py-4 flex items-center justify-center gap-3 group-hover:bg-transparent transition-all duration-500 border border-white/10">
+        <span className="font-black text-[11px] uppercase tracking-wide group-hover:text-white transition-colors">
           {label}
         </span>
         {isLoading && (
-          <div className="w-3 h-3 border-2 border-stone-500 border-t-[var(--accent)] rounded-full animate-spin" />
+          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         )}
       </div>
     </button>
