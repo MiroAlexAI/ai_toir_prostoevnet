@@ -40,52 +40,60 @@ export async function GET(request) {
     const industryConfigs = [
         {
             name: 'Нефть и Газ (RU)',
-            sources: [
-                {
-                    url: 'https://angi.ru/',
-                    type: 'scrape',
-                    selector: 'a[href^="/news/"]',
-                    baseUrl: 'https://angi.ru'
-                }
-            ]
+            sources: [{ url: 'https://angi.ru/', type: 'scrape', selector: 'a[href^="/news/"]', baseUrl: 'https://angi.ru' }]
         },
         {
-            name: 'Добыча (RU)',
-            sources: [
-                {
-                    url: 'https://dprom.online/mainthemes/news/',
-                    type: 'scrape',
-                    selector: '.news-item__title',
-                    baseUrl: 'https://dprom.online'
-                }
-            ]
+            name: 'Технологии (WW)',
+            sources: [{ url: 'https://techcrunch.com/feed/', type: 'rss' }]
+        },
+        {
+            name: 'Логистика',
+            sources: [{ url: 'https://gcaptain.com/feed/', type: 'rss' }]
+        },
+        {
+            name: 'Металлы / Mining',
+            sources: [{ url: 'https://www.mining.com/feed/', type: 'rss' }]
+        },
+        {
+            name: 'Агропром (RU)',
+            sources: [{ url: 'https://www.agroxxi.ru/news/rss.xml', type: 'rss' }]
         },
         {
             name: 'Энергетика (WW)',
-            sources: [
-                { url: 'https://www.eprussia.ru/news/rss.php', type: 'rss' },
-                { url: 'https://www.worldoil.com/rss', type: 'rss' }
-            ]
-        },
-        {
-            name: 'Металлы',
-            sources: [
-                { url: 'https://www.mining.com/feed/', type: 'rss' },
-                { url: 'https://www.mining-technology.com/feed/', type: 'rss' }
-            ]
+            sources: [{ url: 'https://www.worldoil.com/rss', type: 'rss' }]
         }
     ];
 
-    const regionConfigs = category === 'industry' ? industryConfigs : globalConfigs;
+    const financeConfigs = [
+        { name: 'Financial Times', sources: [{ url: 'https://www.ft.com/?format=rss', type: 'rss' }] },
+        { name: 'Bloomberg', sources: [{ url: 'https://www.bloomberg.com/feeds/bview/rss', type: 'rss' }] },
+        { name: 'Nikkei Asia', sources: [{ url: 'https://asia.nikkei.com/rss/feed/nar', type: 'rss' }] },
+        { name: 'SCMP Business', sources: [{ url: 'https://www.scmp.com/rss/91/feed.xml', type: 'rss' }] },
+        { name: 'Gulf Business', sources: [{ url: 'https://gulfbusiness.com/feed/', type: 'rss' }] },
+        { name: 'CNBC Markets', sources: [{ url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', type: 'rss' }] },
+        { name: 'MarketWatch', sources: [{ url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', type: 'rss' }] },
+        { name: 'Fortune', sources: [{ url: 'https://fortune.com/feed/', type: 'rss' }] },
+        { name: 'Forbes', sources: [{ url: 'https://www.forbes.com/business/feed/', type: 'rss' }] }
+    ];
+
+    let regionConfigs;
+    if (category === 'industry') {
+        regionConfigs = industryConfigs;
+    } else if (category === 'finance') {
+        regionConfigs = financeConfigs;
+    } else {
+        regionConfigs = globalConfigs;
+    }
 
     try {
         const allHeadlines = [];
 
         const regionPromises = regionConfigs.map(async (region) => {
             const regionHeadlines = [];
+            const limitPerSource = category === 'finance' ? 1 : 2;
 
             for (const source of region.sources) {
-                if (regionHeadlines.length >= 2) break;
+                if (regionHeadlines.length >= limitPerSource) break;
 
                 try {
                     const response = await axios.get(source.url, {
@@ -101,7 +109,7 @@ export async function GET(request) {
                     if (source.type === 'rss' || data.includes('<rss') || data.includes('<feed')) {
                         const items = $('item').length > 0 ? $('item') : $('entry');
                         items.each((i, el) => {
-                            if (regionHeadlines.length < 2) {
+                            if (regionHeadlines.length < (category === 'finance' ? 1 : 2)) {
                                 let title = $(el).find('title').text() || '';
                                 // Улучшенный поиск ссылки для разных форматов RSS/Atom
                                 let link = $(el).find('link').text() || $(el).find('link').attr('href') || $(el).find('guid').text() || '';
@@ -120,7 +128,7 @@ export async function GET(request) {
                     } else {
                         // Manual scraping
                         $(source.selector).each((i, el) => {
-                            if (regionHeadlines.length < 2) {
+                            if (regionHeadlines.length < (category === 'finance' ? 1 : 2)) {
                                 let title = $(el).text().trim();
                                 let link = $(el).attr('href') || $(el).closest('a').attr('href') || '';
 

@@ -407,8 +407,15 @@ export default function Home() {
           {/* Steps Indicator - Tooltip-like */}
           <div className="flex items-center gap-6 mb-4 px-2 border-b border-stone-800/30 pb-4">
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orange-600 text-[10px] font-black text-white shrink-0">1</span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-orange-900/60">Выберите новость</span>
+              <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black text-white shrink-0 transition-colors ${loadingHeadlines ? 'bg-orange-600 animate-spin' : 'bg-orange-600'}`}>
+                {loadingHeadlines ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                ) : '1'}
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-orange-900/60 flex items-center gap-2">
+                Выберите новость
+                {loadingHeadlines && <span className="text-[8px] italic lowercase opacity-40 animate-pulse">(обновление...)</span>}
+              </span>
             </div>
             <div className="flex gap-4">
               <button
@@ -422,6 +429,12 @@ export default function Home() {
                 className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "industry" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
               >
                 Отраслевая
+              </button>
+              <button
+                onClick={() => setNewsCategory("finance")}
+                className={`text-[10px] font-black uppercase tracking-[0.4em] transition-colors ${newsCategory === "finance" ? "text-orange-700 underline underline-offset-8" : "text-stone-700 hover:text-stone-500"}`}
+              >
+                Финансы
               </button>
               <button
                 onClick={() => setNewsCategory("history")}
@@ -611,13 +624,37 @@ export default function Home() {
                 <div className="prose prose-invert max-w-none">
                   {result.title && (
                     <div className="mb-6 pb-4 border-b border-stone-800/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-600/10 px-2 py-0.5 rounded-sm border border-orange-600/20">
-                          {result.source || "ИСТОЧНИК"}
-                        </span>
-                        <span className="text-[9px] font-bold text-stone-600 uppercase tracking-widest">
-                          {new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                        </span>
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-600/10 px-2 py-0.5 rounded-sm border border-orange-600/20">
+                            {result.source || "ИСТОЧНИК"}
+                          </span>
+                          <span className="text-[9px] font-bold text-stone-600 uppercase tracking-widest">
+                            {new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => toggleSpeech(result.text)}
+                            className={`text-[9px] font-black uppercase flex items-center gap-1.5 transition-colors tracking-widest ${isSpeaking ? 'text-orange-500 animate-pulse' : 'text-stone-700 hover:text-orange-600'}`}
+                            title={isSpeaking ? "Остановить" : "Прослушать"}
+                          >
+                            {isSpeaking ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                            )}
+                            <span className="hidden sm:inline">{isSpeaking ? "Стоп" : "Слушать"}</span>
+                          </button>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(result.text)}
+                            className="text-[9px] font-black uppercase text-stone-700 hover:text-orange-600 transition-colors tracking-widest flex items-center gap-1.5"
+                            title="Копировать"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                            <span className="hidden sm:inline">Копия</span>
+                          </button>
+                        </div>
                       </div>
                       <h2 className="text-xl font-black text-stone-100 uppercase tracking-tight leading-tight">
                         {result.title}
