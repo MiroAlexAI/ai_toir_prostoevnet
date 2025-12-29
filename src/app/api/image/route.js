@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { InferenceClient } from "@huggingface/inference";
 
 export async function POST(request) {
     try {
@@ -9,24 +10,25 @@ export async function POST(request) {
             return NextResponse.json({ error: 'HF_API_KEY is not configured' }, { status: 500 });
         }
 
-        const prompt = `Highly detailed technical technical cutaway drawing of industrial ${type} ${manufacturer || ''} ${model}. 
+        const client = new InferenceClient(hfKey);
+
+        const prompt = `Highly detailed technical cutaway drawing of industrial ${type} ${manufacturer || ''} ${model}. 
         Perspective view showing internal components, gears, bearings, valves, and mechanical structure. 
-        Professional engineering illustration, blueprint style, detailed mechanical parts, 4k resolution, white background, technical diagram.`;
+        Professional engineering illustration, blueprint style, detailed mechanical parts, white background, technical diagram.`;
 
-        const response = await fetch(
-            "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
-            {
-                headers: { Authorization: `Bearer ${hfKey}` },
-                method: "POST",
-                body: JSON.stringify({ inputs: prompt }),
-            }
-        );
+        // Используем предложенную пользователем модель и провайдера через официальный SDK
+        const response = await client.textToImage({
+            provider: "nebius",
+            model: "black-forest-labs/FLUX.1-dev",
+            inputs: prompt,
+            parameters: {
+                num_inference_steps: 5,
+                width: 400,
+                height: 300
+            },
+        });
 
-        if (!response.ok) {
-            const error = await response.json();
-            return NextResponse.json({ error: 'Image generation failed', details: error }, { status: response.status });
-        }
-
+        // SDK возвращает Blob. Преобразуем его в base64 для передачи на фронтенд
         const buffer = await response.arrayBuffer();
         const base64Image = Buffer.from(buffer).toString('base64');
         const dataUrl = `data:image/jpeg;base64,${base64Image}`;
@@ -34,6 +36,10 @@ export async function POST(request) {
         return NextResponse.json({ image: dataUrl });
 
     } catch (error) {
-        return NextResponse.json({ error: 'Server error', details: error.message }, { status: 500 });
+        console.error("Image Generation Error:", error);
+        return NextResponse.json({
+            error: 'Ошибка генерации изображения',
+            details: error.message
+        }, { status: 500 });
     }
 }
