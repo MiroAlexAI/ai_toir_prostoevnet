@@ -82,7 +82,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto mb-12 flex justify-between items-end border-b-4 border-blue-600 pb-4">
         <div>
           <h1 className="text-3xl font-black text-blue-900 uppercase tracking-tighter">
-            Инженер по надёжности и НСИ
+            Инженер по надёжности и НСИ для Простоев.НЕТ
           </h1>
           <p className="text-blue-600 font-bold uppercase text-xs tracking-[0.2em] mt-1">
             Система интеллектуального анализа ТОиР
