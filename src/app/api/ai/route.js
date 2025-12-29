@@ -58,17 +58,27 @@ export async function POST(request) {
             } catch (e) { console.error("Google Error:", e); }
         }
 
-        // 3. Fallback to OpenRouter
+        // 3. Fallback to OpenRouter (Free Models Only)
         if (!resultText && openRouterKeys.length > 0) {
-            const models = ['google/gemini-2.0-flash-exp:free', 'tngtech/tng-r1t-chimera:free'];
+            const models = [
+                'google/gemini-2.0-flash-exp:free',
+                'google/learnlm-1.5-pro-experimental:free',
+                'mistralai/mistral-7b-instruct:free',
+                'huggingfaceh4/zephyr-7b-beta:free',
+                'openchat/openchat-7b:free',
+                'tngtech/tng-r1t-chimera:free'
+            ];
             outer: for (let model of models) {
-                for (let key of openRouterKeys) {
+                for (let i = 0; i < openRouterKeys.length; i++) {
+                    const key = openRouterKeys[i];
                     try {
                         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${key}`,
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'HTTP-Referer': 'https://github.com/MiroAlexAI/ai_toir_prostoevnet',
+                                'X-Title': 'TOiR AI Assistant'
                             },
                             body: JSON.stringify({
                                 model: model,
@@ -84,7 +94,9 @@ export async function POST(request) {
                                 break outer;
                             }
                         }
-                    } catch (e) { console.error("OR Error:", e); }
+                    } catch (e) {
+                        console.error(`OR Error with key ${i} model ${model}:`, e);
+                    }
                 }
             }
         }
