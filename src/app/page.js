@@ -11,6 +11,7 @@ export default function Home() {
   const [abbreviation, setAbbreviation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isDataModified, setIsDataModified] = useState(false);
 
   const generateAbbreviation = (data) => {
     const site = data.site.substring(0, 3).toUpperCase();
@@ -46,8 +47,7 @@ export default function Home() {
 Производитель: ${data.manufacturer}
 
 Твой ответ должен содержать ТОЛЬКО одно слово: 'valid' если это похоже на реальное оборудование, или 'invalid' если это абракадабра, шутка или не относится к технике. 
-Если 'invalid', через запятую кратко напиши причину на русском.
-Пример: invalid, это персонаж мультфильма`;
+Если 'invalid', через запятую кратко напиши причину на русском.`;
 
       const response = await fetch('/api/ai', {
         method: 'POST',
@@ -65,6 +65,7 @@ export default function Home() {
         setEquipment(data);
         setAbbreviation(generateAbbreviation(data));
         setAppState('generating');
+        setIsDataModified(false);
       } else {
         const reason = responseText.split(',')[1] || "укажите аналог или проверьте данные";
         setError(`Оборудование не найдено: ${reason}`);
@@ -76,21 +77,23 @@ export default function Home() {
     }
   };
 
+  const onFormChange = () => {
+    if (appState === 'generating') {
+      setIsDataModified(true);
+    }
+  };
+
   return (
-    <main className="min-h-screen p-4 md:p-8">
+    <main className="min-h-screen p-4 md:p-8 bg-slate-50">
       {/* Header */}
-      <div className="max-w-4xl mx-auto mb-12 flex justify-between items-end border-b-4 border-blue-600 pb-4">
+      <div className="max-w-5xl mx-auto mb-8 flex justify-between items-end border-b-4 border-blue-600 pb-4">
         <div>
-          <h1 className="text-3xl font-black text-blue-900 uppercase tracking-tighter">
+          <h1 className="text-2xl font-black text-blue-900 uppercase tracking-tighter">
             Инженер по надёжности и НСИ для Простоев.НЕТ
           </h1>
-          <p className="text-blue-600 font-bold uppercase text-xs tracking-[0.2em] mt-1">
+          <p className="text-blue-600 font-bold uppercase text-[10px] tracking-[0.2em] mt-1">
             Система интеллектуального анализа ТОиР
           </p>
-        </div>
-        <div className="text-right hidden md:block">
-          <div className="text-[10px] text-slate-400 font-mono uppercase">Status: Automated Analysis</div>
-          <div className="text-[10px] text-slate-400 font-mono uppercase">Ref: RCM-FMEA-STD</div>
         </div>
       </div>
 
@@ -98,27 +101,34 @@ export default function Home() {
         <Disclaimer onAccept={handleDisclaimerAccept} />
       )}
 
-      {appState === 'input' && (
-        <EquipmentInput onSubmit={handleEquipmentSubmit} isLoading={isLoading} />
-      )}
+      <div className="space-y-8">
+        {(appState === 'input' || appState === 'generating') && (
+          <EquipmentInput
+            onSubmit={handleEquipmentSubmit}
+            isLoading={isLoading}
+            hasAnalysis={appState === 'generating' && isDataModified}
+            isModified={onFormChange}
+          />
+        )}
 
-      {appState === 'generating' && (
-        <TableGenerator equipment={equipment} abbreviation={abbreviation} />
-      )}
+        {error && (
+          <div className="max-w-4xl mx-auto mt-4 p-4 bg-red-50 border border-red-200 text-red-600 text-xs font-bold uppercase rounded">
+            {error}
+          </div>
+        )}
 
-      {error && (
-        <div className="max-w-2xl mx-auto mt-4 p-4 bg-red-50 border border-red-200 text-red-600 text-sm">
-          {error}
-        </div>
-      )}
+        {appState === 'generating' && (
+          <div className={isDataModified ? "pointer-events-none opacity-50 grayscale contrast-50" : ""}>
+            <TableGenerator equipment={equipment} abbreviation={abbreviation} />
+          </div>
+        )}
+      </div>
 
-      {/* Progress placeholder for later */}
-      {equipment && appState === 'input' && (
-        <div className="max-w-2xl mx-auto mt-8 p-6 bg-blue-50 border-l-4 border-blue-600 opacity-60">
-          <p className="text-xs uppercase font-bold text-blue-800">Активное оборудование:</p>
-          <p className="text-lg font-medium text-blue-900">{equipment.manufacturer} {equipment.model} ({equipment.type})</p>
-        </div>
-      )}
+      <footer className="max-w-5xl mx-auto mt-20 pt-8 border-t border-slate-200 text-center">
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+          Разработано для образовательных целей компании Простоев.НЕТ
+        </p>
+      </footer>
     </main>
   );
 }
