@@ -101,13 +101,15 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
         setIsImageLoading(true);
         setError(null);
         try {
+            const nodes = tables.parts.length > 0 ? tables.parts.map(p => p.Название).join(", ") : "";
             const response = await fetch('/api/image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: equipment.type,
                     manufacturer: equipment.manufacturer,
-                    model: equipment.model
+                    model: equipment.model,
+                    parts: nodes
                 })
             });
             const data = await response.json();
@@ -155,13 +157,13 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                             <div className="relative group">
                                 <button
                                     onClick={s.id === 5 ? generateImage : () => generateStep(s.id)}
-                                    disabled={loadingStep || (s.id === 5 && !tables.plan) || isImageLoading}
+                                    disabled={loadingStep || (s.id === 5 && tables.parts.length === 0) || isImageLoading}
                                     title={s.desc}
                                     className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest border-2 transition-all min-w-[140px] ${(loadingStep === s.id || (s.id === 5 && isImageLoading)) ? 'bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed shadow-inner' :
-                                            (loadingStep || isImageLoading) ? 'opacity-50 grayscale cursor-not-allowed border-slate-200' :
-                                                (s.id === 5 && !tables.plan) ? 'opacity-30 cursor-not-allowed border-slate-200' :
-                                                    activeStep === s.id ? 'bg-blue-900 text-white border-blue-900 shadow-lg' :
-                                                        activeStep > s.id ? 'bg-white text-blue-900 border-blue-900 font-extrabold' : 'bg-slate-50 text-slate-400 border-slate-200'
+                                        (loadingStep || isImageLoading) ? 'opacity-50 grayscale cursor-not-allowed border-slate-200' :
+                                            (s.id === 5 && !tables.plan) ? 'opacity-30 cursor-not-allowed border-slate-200' :
+                                                activeStep === s.id ? 'bg-blue-900 text-white border-blue-900 shadow-lg' :
+                                                    activeStep > s.id ? 'bg-white text-blue-900 border-blue-900 font-extrabold' : 'bg-slate-50 text-slate-400 border-slate-200'
                                         } ${(!loadingStep && !isImageLoading && (s.id < 5 || tables.plan)) ? 'hover:border-blue-900 hover:text-blue-900 hover:bg-blue-50' : ''}`}
                                 >
                                     {(loadingStep === s.id || (s.id === 5 && isImageLoading)) ? (
@@ -173,7 +175,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                                 </button>
                                 {/* Tooltip */}
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-black text-white text-[9px] lowercase font-bold text-center rounded z-50 pointer-events-none">
-                                    {s.id === 5 && !tables.plan ? "Сначала выполните Этап 4" : s.desc}
+                                    {s.id === 5 && tables.parts.length === 0 ? "Сначала выполните Этап 1" : s.desc}
                                 </div>
                             </div>
                             {idx < 4 && <span className="text-slate-300 font-bold hidden md:inline">→</span>}

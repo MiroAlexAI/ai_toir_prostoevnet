@@ -3,7 +3,7 @@ import { InferenceClient } from "@huggingface/inference";
 
 export async function POST(request) {
     try {
-        const { type, manufacturer, model } = await request.json();
+        const { type, manufacturer, model, parts } = await request.json();
         const hfKey = process.env.HF_API_KEY;
 
         if (!hfKey) {
@@ -12,9 +12,9 @@ export async function POST(request) {
 
         const client = new InferenceClient(hfKey);
 
-        const prompt = `Highly detailed technical cutaway drawing of industrial ${type} ${manufacturer || ''} ${model}. 
-        Perspective view showing internal components, gears, bearings, valves, and mechanical structure. 
-        Professional engineering illustration, blueprint style, detailed mechanical parts, white background, technical diagram.`;
+        const prompt = `Highest quality professional technical cutaway illustration of ${type} ${model} ${manufacturer || ''}. 
+        Cross-section view revealing internal mechanisms: ${parts || 'internal components'}. 
+        Labeled engineering drawing style, blueprint aesthetic, detailed mechanical parts, gears, bearings, housings, 4k ultra-detailed, white background.`;
 
         // Используем предложенную пользователем модель и провайдера через официальный SDK
         const response = await client.textToImage({
