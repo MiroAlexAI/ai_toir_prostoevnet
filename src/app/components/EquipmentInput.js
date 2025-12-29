@@ -98,14 +98,14 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                         <button
                             disabled={isLoading}
                             type="submit"
-                            className={`w-full py-3 px-6 gost-button font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all ${isLoading ? 'bg-slate-100 text-slate-400 cursor-not-allowed' :
-                                    hasAnalysis ? 'bg-white text-blue-900 animate-pulse border-2 border-blue-900 shadow-xl' : 'bg-blue-900 text-white'
+                            className={`w-full py-3 px-6 gost-button font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all ${isLoading ? 'bg-slate-300 text-slate-500 cursor-not-allowed border-slate-400' :
+                                    hasAnalysis ? 'bg-white text-blue-900 animate-pulse border-2 border-blue-900 shadow-xl' : 'bg-blue-900 text-white hover:bg-black font-black'
                                 }`}
                         >
                             {isLoading ? (
                                 <>
-                                    <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                                    Обработка...
+                                    <div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>
+                                    Обработка запроса (до 10 сек)...
                                 </>
                             ) : (
                                 "Анализировать оборудование"

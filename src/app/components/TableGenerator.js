@@ -21,7 +21,6 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
 
     const WARNING_TEXT = "Данные запрещено использовать в реальной работе.!Всё является учебной имитацией на основе ИИ!";
 
-    // Очистка при обновлении данных
     useEffect(() => {
         if (reset) {
             setTables({ parts: [], fmea: [], rcm: [], plan: "" });
@@ -53,11 +52,11 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
 Верни ответ СТРОГО В ФОРМАТЕ JSON массива объектов.`;
             } else if (stepToGen === 4) {
                 const rcmCtx = tables.rcm.length > 0 ? JSON.stringify(tables.rcm.slice(0, 3)) : "данные RCM";
-                prompt = `На основе данных анализа для портала ${equipStr} составь отчет.
+                prompt = `На основе данных анализа для портала ${equipStr} составь МАКСИМАЛЬНО ПОДРОБНЫЙ отчет.
 ТРЕБОВАНИЯ:
 1. Вывод только в виде обычного текста БЕЗ MARKDOWN.
-2. Описание общих особенностей эксплуатации оборудования.
-3. Короткий анализ данных RCM и FMEA.
+2. Подробное описание всех особенностей эксплуатации оборудования.
+3. Глубокий анализ данных RCM и FMEA.
 4. В конце добавь текстовую таблицу с финальными рекомендациями по стратегии ТОиР для узлов.
 5. Закончи фразой: 'Для проверки данных свяжитесь с компанией Простоев.НЕТ'.`;
             }
@@ -130,12 +129,18 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                                     onClick={() => generateStep(s.id)}
                                     disabled={!!loadingStep}
                                     title={s.desc}
-                                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest border-2 transition-all ${loadingStep === s.id ? 'bg-blue-600 text-white animate-pulse border-blue-600' :
-                                        activeStep === s.id ? 'bg-blue-900 text-white border-blue-900 shadow-lg' :
-                                            activeStep > s.id ? 'bg-white text-blue-900 border-blue-900' : 'bg-slate-50 text-slate-400 border-slate-200'
-                                        } hover:border-blue-900 hover:text-blue-900 hover:bg-blue-50`}
+                                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest border-2 transition-all min-w-[140px] ${loadingStep === s.id ? 'bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed shadow-inner' :
+                                            loadingStep ? 'opacity-50 grayscale cursor-not-allowed border-slate-200' :
+                                                activeStep === s.id ? 'bg-blue-900 text-white border-blue-900 shadow-lg' :
+                                                    activeStep > s.id ? 'bg-white text-blue-900 border-blue-900 font-extrabold' : 'bg-slate-50 text-slate-400 border-slate-200'
+                                        } ${!loadingStep ? 'hover:border-blue-900 hover:text-blue-900 hover:bg-blue-50' : ''}`}
                                 >
-                                    {loadingStep === s.id ? 'Загрузка...' : s.label}
+                                    {loadingStep === s.id ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <div className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>
+                                            Ждите...
+                                        </div>
+                                    ) : s.label}
                                 </button>
                                 {/* Tooltip */}
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-black text-white text-[9px] lowercase font-bold text-center rounded z-50 pointer-events-none">

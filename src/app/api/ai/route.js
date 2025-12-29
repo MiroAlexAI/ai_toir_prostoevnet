@@ -32,7 +32,7 @@ export async function POST(request) {
                     body: JSON.stringify({
                         model: "zai-org/GLM-4.5-Air:zai-org",
                         messages: [{ role: 'user', content: prompt }],
-                        temperature: 0.3,
+                        temperature: 0.1, // Снижаем температуру для точности
                     })
                 });
 
