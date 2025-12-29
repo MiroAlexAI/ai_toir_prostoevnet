@@ -18,6 +18,8 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
     });
     const [loadingStep, setLoadingStep] = useState(null);
     const [error, setError] = useState(null);
+    const [generatedImage, setGeneratedImage] = useState(null);
+    const [isImageLoading, setIsImageLoading] = useState(false);
 
     const WARNING_TEXT = "Данные запрещено использовать в реальной работе.!Всё является учебной имитацией на основе ИИ!";
 
@@ -26,6 +28,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
             setTables({ parts: [], fmea: [], rcm: [], plan: "" });
             setModels({ parts: "", fmea: "", rcm: "", plan: "" });
             setActiveStep(0);
+            setGeneratedImage(null);
         }
     }, [reset]);
 
@@ -94,6 +97,30 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
         }
     };
 
+    const generateImage = async () => {
+        setIsImageLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: equipment.type,
+                    manufacturer: equipment.manufacturer,
+                    model: equipment.model
+                })
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            setGeneratedImage(data.image);
+            setActiveStep(5);
+        } catch (err) {
+            setError(`Ошибка генерации изображения: ${err.message}`);
+        } finally {
+            setIsImageLoading(false);
+        }
+    };
+
     const exportToCSV = (data, filename) => {
         if (!data || data.length === 0) return;
         const headers = Object.keys(data[0]);
@@ -109,7 +136,8 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
         { id: 1, label: "01. Узлы и части", desc: "Определение состава оборудования и его функций" },
         { id: 2, label: "02. Анализ FMEA", desc: "Анализ видов, причин и последствий отказов (RPN)" },
         { id: 3, label: "03. Анализ RCM", desc: "Выбор стратегии обслуживания на основе критичности" },
-        { id: 4, label: "04. План ТОиР", desc: "Финальные рекомендации и план эксплуатации" }
+        { id: 4, label: "04. План ТОиР", desc: "Финальные рекомендации и план эксплуатации" },
+        { id: 5, label: "05. Изображение", desc: "Генерация технического разреза оборудования" }
     ];
 
     return (
@@ -119,23 +147,24 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
             <div className="bg-white shadow-sm border border-slate-200 p-4 space-y-4">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-900 border-b pb-2 mb-2">
                     <span className="bg-blue-900 text-white px-2 py-0.5">Инфо</span>
-                    Рекомендованный порядок: 01 → 02 → 03 → 04
+                    Рекомендованный порядок: 01 → 02 → 03 → 04 → 05
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
                     {stepButtons.map((s, idx) => (
                         <React.Fragment key={s.id}>
                             <div className="relative group">
                                 <button
-                                    onClick={() => generateStep(s.id)}
-                                    disabled={!!loadingStep}
+                                    onClick={s.id === 5 ? generateImage : () => generateStep(s.id)}
+                                    disabled={loadingStep || (s.id === 5 && !tables.plan) || isImageLoading}
                                     title={s.desc}
-                                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest border-2 transition-all min-w-[140px] ${loadingStep === s.id ? 'bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed shadow-inner' :
-                                        loadingStep ? 'opacity-50 grayscale cursor-not-allowed border-slate-200' :
-                                            activeStep === s.id ? 'bg-blue-900 text-white border-blue-900 shadow-lg' :
-                                                activeStep > s.id ? 'bg-white text-blue-900 border-blue-900 font-extrabold' : 'bg-slate-50 text-slate-400 border-slate-200'
-                                        } ${!loadingStep ? 'hover:border-blue-900 hover:text-blue-900 hover:bg-blue-50' : ''}`}
+                                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest border-2 transition-all min-w-[140px] ${(loadingStep === s.id || (s.id === 5 && isImageLoading)) ? 'bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed shadow-inner' :
+                                            (loadingStep || isImageLoading) ? 'opacity-50 grayscale cursor-not-allowed border-slate-200' :
+                                                (s.id === 5 && !tables.plan) ? 'opacity-30 cursor-not-allowed border-slate-200' :
+                                                    activeStep === s.id ? 'bg-blue-900 text-white border-blue-900 shadow-lg' :
+                                                        activeStep > s.id ? 'bg-white text-blue-900 border-blue-900 font-extrabold' : 'bg-slate-50 text-slate-400 border-slate-200'
+                                        } ${(!loadingStep && !isImageLoading && (s.id < 5 || tables.plan)) ? 'hover:border-blue-900 hover:text-blue-900 hover:bg-blue-50' : ''}`}
                                 >
-                                    {loadingStep === s.id ? (
+                                    {(loadingStep === s.id || (s.id === 5 && isImageLoading)) ? (
                                         <div className="flex items-center justify-center gap-2">
                                             <div className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>
                                             Ждите...
@@ -144,10 +173,10 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                                 </button>
                                 {/* Tooltip */}
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-black text-white text-[9px] lowercase font-bold text-center rounded z-50 pointer-events-none">
-                                    {s.desc}
+                                    {s.id === 5 && !tables.plan ? "Сначала выполните Этап 4" : s.desc}
                                 </div>
                             </div>
-                            {idx < 3 && <span className="text-slate-300 font-bold hidden md:inline">→</span>}
+                            {idx < 4 && <span className="text-slate-300 font-bold hidden md:inline">→</span>}
                         </React.Fragment>
                     ))}
                 </div>
@@ -264,6 +293,29 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                             <div className="mt-4 pt-2 border-t flex justify-between items-center">
                                 <span className="text-[9px] font-mono text-slate-400 italic">Core: {models.plan}</span>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 5 Image */}
+                {generatedImage && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="flex justify-between items-center border-b border-blue-600 pb-1">
+                            <h3 className="text-xs font-black text-blue-900 uppercase">Этап 5: Визуализация ({equipment.type})</h3>
+                            <span className="text-[8px] text-red-500 italic font-bold">{WARNING_TEXT}</span>
+                        </div>
+                        <div className="gost-card p-4 bg-white flex flex-col items-center gap-4">
+                            <div className="relative border-4 border-slate-200 shadow-inner group">
+                                <img
+                                    src={generatedImage}
+                                    alt="Equipment cutaway"
+                                    className="w-[400px] h-[300px] object-cover grayscale-0 group-hover:grayscale transition-all duration-500"
+                                />
+                                <div className="absolute inset-0 bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            </div>
+                            <p className="text-[10px] text-slate-500 italic font-bold uppercase tracking-widest">
+                                Технический разрез оборудования (AI Generated)
+                            </p>
                         </div>
                     </div>
                 )}
