@@ -46,12 +46,12 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
 Столбцы: "Узел", "Вид отказа", "Причина", "Последствия", "O" (Вероятность 1-10), "S" (Серьезность 1-10), "D" (Обнаруживаемость 1-10).
 Верни ответ СТРОГО В ФОРМАТЕ JSON массива объектов.`;
             } else if (stepToGen === 3) {
-                const fmeaCtx = tables.fmea.length > 0 ? JSON.stringify(tables.fmea.slice(0, 3)) : "данные FMEA";
-                prompt = `Сгенерируй RCM таблицу для ${equipStr} на основе: ${fmeaCtx}.
+                const fmeaCtx = tables.fmea.length > 0 ? JSON.stringify(tables.fmea.slice(0, 6)) : "данные FMEA";
+                prompt = `Сгенерируй RCM таблицу (МИНИМУМ 4 СТРОКИ) для ${equipStr} на основе: ${fmeaCtx}.
 Столбцы: "Узел", "Функция", "Вид отказа", "Критичность" (Высокая/Средняя/Низкая), "Рекомендуемая стратегия".
 Верни ответ СТРОГО В ФОРМАТЕ JSON массива объектов.`;
             } else if (stepToGen === 4) {
-                const rcmCtx = tables.rcm.length > 0 ? JSON.stringify(tables.rcm.slice(0, 3)) : "данные RCM";
+                const rcmCtx = tables.rcm.length > 0 ? JSON.stringify(tables.rcm.slice(0, 6)) : "данные RCM";
                 prompt = `На основе данных анализа для ${equipStr} составь отчет.
 ТРЕБОВАНИЯ:
 1. Только обычный текст БЕЗ MARKDOWN.
