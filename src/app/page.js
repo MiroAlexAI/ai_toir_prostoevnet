@@ -8,8 +8,17 @@ import TableGenerator from './components/TableGenerator';
 export default function Home() {
   const [appState, setAppState] = useState('loading'); // loading, disclaimer, input, generating
   const [equipment, setEquipment] = useState(null);
+  const [abbreviation, setAbbreviation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const generateAbbreviation = (data) => {
+    const site = data.site.substring(0, 3).toUpperCase();
+    const type = data.type.substring(0, 3).toUpperCase();
+    const model = data.model.replace(/\s/g, '').substring(0, 4).toUpperCase();
+    const year = data.year.toString().slice(-2);
+    return `${site}-${type}-${model}-${year}`;
+  };
 
   useEffect(() => {
     const accepted = localStorage.getItem('toir_disclaimer_accepted');
@@ -54,6 +63,7 @@ export default function Home() {
 
       if (responseText.startsWith('valid')) {
         setEquipment(data);
+        setAbbreviation(generateAbbreviation(data));
         setAppState('generating');
       } else {
         const reason = responseText.split(',')[1] || "укажите аналог или проверьте данные";
@@ -93,7 +103,7 @@ export default function Home() {
       )}
 
       {appState === 'generating' && (
-        <TableGenerator equipment={equipment} />
+        <TableGenerator equipment={equipment} abbreviation={abbreviation} />
       )}
 
       {error && (
