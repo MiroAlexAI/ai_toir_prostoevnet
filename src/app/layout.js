@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "News Analyst | Global Intelligence",
-  description: "Advanced AI-powered global news analysis tool.",
+  title: "ИИ-ассистент: Инженер по надёжности и НСИ. ТОиР",
+  description: "Интеллектуальный поиск и анализ данных по надёжности и нормативно-справочной информации в сфере ТОиР.",
 };
 
 export default function RootLayout({ children }) {
