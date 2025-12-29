@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Disclaimer from './components/Disclaimer';
 import EquipmentInput from './components/EquipmentInput';
+import TableGenerator from './components/TableGenerator';
 
 export default function Home() {
   const [appState, setAppState] = useState('loading'); // loading, disclaimer, input, generating
@@ -27,18 +28,39 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
 
-    // В будущем здесь будет вызов API для валидации
-    // Имитируем задержку для согласования интерфейса
     try {
-      console.log("Submit equipment:", data);
-      await new Promise(r => setTimeout(r, 1500));
+      const prompt = `Проверь, является ли это реальным промышленным оборудованием или его частью: 
+Участок: ${data.site}
+Тип: ${data.type}
+Модель: ${data.model}
+Год: ${data.year}
+Производитель: ${data.manufacturer}
 
-      // Для теста считаем всё валидным
-      setEquipment(data);
-      // setAppState('generating'); // Перейдем на следующий этап позже
-      alert("Оборудование принято: " + data.model + ". Теперь мы можем перейти к генерации таблиц.");
+Твой ответ должен содержать ТОЛЬКО одно слово: 'valid' если это похоже на реальное оборудование, или 'invalid' если это абракадабра, шутка или не относится к технике. 
+Если 'invalid', через запятую кратко напиши причину на русском.
+Пример: invalid, это персонаж мультфильма`;
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      const result = await response.json();
+
+      if (result.error) throw new Error(result.error);
+
+      const responseText = result.result.trim().toLowerCase();
+
+      if (responseText.startsWith('valid')) {
+        setEquipment(data);
+        setAppState('generating');
+      } else {
+        const reason = responseText.split(',')[1] || "укажите аналог или проверьте данные";
+        setError(`Оборудование не найдено: ${reason}`);
+      }
     } catch (err) {
-      setError("Ошибка при проверке оборудования");
+      setError("Ошибка при проверке оборудования: " + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +92,10 @@ export default function Home() {
         <EquipmentInput onSubmit={handleEquipmentSubmit} isLoading={isLoading} />
       )}
 
+      {appState === 'generating' && (
+        <TableGenerator equipment={equipment} />
+      )}
+
       {error && (
         <div className="max-w-2xl mx-auto mt-4 p-4 bg-red-50 border border-red-200 text-red-600 text-sm">
           {error}
@@ -77,7 +103,7 @@ export default function Home() {
       )}
 
       {/* Progress placeholder for later */}
-      {equipment && (
+      {equipment && appState === 'input' && (
         <div className="max-w-2xl mx-auto mt-8 p-6 bg-blue-50 border-l-4 border-blue-600 opacity-60">
           <p className="text-xs uppercase font-bold text-blue-800">Активное оборудование:</p>
           <p className="text-lg font-medium text-blue-900">{equipment.manufacturer} {equipment.model} ({equipment.type})</p>
