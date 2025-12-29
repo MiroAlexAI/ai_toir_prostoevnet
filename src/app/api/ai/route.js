@@ -79,8 +79,9 @@ export async function POST(request) {
         // 3. OpenRouter с ротацией ключей и моделей
         if (!resultText) {
             const modelsToTry = [
-                'google/gemini-2.0-flash-exp:free',
-                'tngtech/tng-r1t-chimera:free'
+                'tngtech/tng-r1t-chimera:free',
+                'mistralai/mistral-small',
+                'google/gemini-2.0-flash-exp:free' // В самый конец по просьбе пользователя
             ];
 
             if (openRouterKeys.length > 0) {
@@ -98,13 +99,13 @@ export async function POST(request) {
                                 body: JSON.stringify({
                                     model: modelName,
                                     messages: [{ role: 'user', content: prompt }],
-                                    temperature: 0.3,
+                                    temperature: 0.1,
                                 })
                             });
 
                             if (response.ok) {
                                 const data = await response.json();
-                                resultText = data.choices?.[0]?.message?.content;
+                                resultText = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning_content;
                                 if (resultText) {
                                     usedModel = `OpenRouter Key #${i + 1} (${data.model})`;
                                     break outerLoop;
