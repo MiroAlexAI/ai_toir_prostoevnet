@@ -9,6 +9,7 @@ export default function Home() {
   const [appState, setAppState] = useState('loading'); // loading, disclaimer, input, generating
   const [equipment, setEquipment] = useState(null);
   const [abbreviation, setAbbreviation] = useState('');
+  const [analogues, setAnalogues] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isDataModified, setIsDataModified] = useState(false);
@@ -39,15 +40,23 @@ export default function Home() {
     setError(null);
 
     try {
-      const prompt = `Проверь, является ли это реальным промышленным оборудованием или его частью: 
+      const prompt = `Проанализируй оборудование: 
 Участок: ${data.site}
 Тип: ${data.type}
 Модель: ${data.model}
 Год: ${data.year}
 Производитель: ${data.manufacturer}
 
-Твой ответ должен содержать ТОЛЬКО одно слово: 'valid' если это похоже на реальное оборудование, или 'invalid' если это абракадабра, шутка или не относится к технике. 
-Если 'invalid', через запятую кратко напиши причину на русском.`;
+Задание:
+1. Проверь валидность оборудования (valid/invalid).
+2. Найди 3 реальных ближайших аналога этого оборудования.
+
+Ответь СТРОГО В ФОРМАТЕ JSON следующей структуры:
+{
+  "status": "valid" или "invalid",
+  "reason": "причина если invalid",
+  "analogues": ["Модель 1 (Название)", "Модель 2 (Название)", "Модель 3 (Название)"]
+}`;
 
       const response = await fetch('/api/ai', {
         method: 'POST',
@@ -56,19 +65,18 @@ export default function Home() {
       });
 
       const result = await response.json();
-
       if (result.error) throw new Error(result.error);
 
-      const responseText = result.result.trim().toLowerCase();
+      const parsed = JSON.parse(result.result.replace(/```json|```/g, '').trim());
 
-      if (responseText.startsWith('valid')) {
+      if (parsed.status === 'valid') {
         setEquipment(data);
         setAbbreviation(generateAbbreviation(data));
+        setAnalogues(parsed.analogues || []);
         setAppState('generating');
         setIsDataModified(false);
       } else {
-        const reason = responseText.split(',')[1] || "укажите аналог или проверьте данные";
-        setError(`Оборудование не найдено: ${reason}`);
+        setError(`Оборудование не нацдено: ${parsed.reason || "укажите аналог"}`);
       }
     } catch (err) {
       setError("Ошибка при проверке оборудования: " + err.message);
@@ -118,8 +126,21 @@ export default function Home() {
         )}
 
         {appState === 'generating' && (
-          <div className={isDataModified ? "pointer-events-none opacity-50 grayscale contrast-50" : ""}>
-            <TableGenerator equipment={equipment} abbreviation={abbreviation} />
+          <div className="space-y-8">
+            <div className="max-w-4xl mx-auto p-4 bg-blue-50 border-l-4 border-blue-600 animate-in fade-in duration-700">
+              <p className="text-[10px] uppercase font-bold text-blue-800 mb-2">Найдено 3 ближайших аналога:</p>
+              <div className="flex gap-4">
+                {analogues.map((a, i) => (
+                  <div key={i} className="px-3 py-1 bg-white border border-blue-200 text-[10px] font-bold text-blue-900 rounded shadow-sm">
+                    {a}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={isDataModified ? "opacity-50 grayscale pointer-events-none transition-all duration-300" : "transition-all duration-300"}>
+              <TableGenerator equipment={equipment} abbreviation={abbreviation} reset={isDataModified} />
+            </div>
           </div>
         )}
       </div>
