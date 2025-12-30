@@ -38,7 +38,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase text-slate-400">Технологический участок</label>
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Технологический участок <span className="text-red-500 ml-1">*</span></label>
                             <input
                                 required
                                 name="site"
@@ -49,7 +49,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase text-slate-400">Тип оборудования</label>
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Тип оборудования <span className="text-red-500 ml-1">*</span></label>
                             <input
                                 required
                                 name="type"
@@ -60,7 +60,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase text-slate-400">Модель</label>
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Модель <span className="text-red-500 ml-1">*</span></label>
                             <input
                                 required
                                 name="model"
@@ -71,7 +71,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase text-slate-400">Год производства</label>
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Год производства <span className="text-red-500 ml-1">*</span></label>
                             <input
                                 required
                                 name="year"
@@ -99,7 +99,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                             disabled={isLoading}
                             type="submit"
                             className={`w-full py-3 px-6 gost-button font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all ${isLoading ? 'bg-slate-300 text-slate-500 cursor-not-allowed border-slate-400' :
-                                    hasAnalysis ? 'bg-white text-blue-900 animate-pulse border-2 border-blue-900 shadow-xl' : 'bg-blue-900 text-white hover:bg-black font-black'
+                                hasAnalysis ? 'bg-white text-blue-900 animate-pulse border-2 border-blue-900 shadow-xl' : 'bg-blue-900 text-white hover:bg-black font-black'
                                 }`}
                         >
                             {isLoading ? (
