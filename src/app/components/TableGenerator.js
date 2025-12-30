@@ -101,7 +101,10 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
         setIsImageLoading(true);
         setError(null);
         try {
-            const nodes = tables.parts.length > 0 ? tables.parts.map(p => p.Название).join(", ") : "";
+            const nodesWithDesc = tables.parts.length > 0
+                ? tables.parts.map(p => `${p.Название}: ${p.Описание}`).join("; ")
+                : "";
+
             const response = await fetch('/api/image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -109,7 +112,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                     type: equipment.type,
                     manufacturer: equipment.manufacturer,
                     model: equipment.model,
-                    parts: nodes
+                    parts: nodesWithDesc
                 })
             });
             const data = await response.json();

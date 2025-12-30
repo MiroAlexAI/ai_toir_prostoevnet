@@ -23,19 +23,22 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const accepted = localStorage.getItem('toir_disclaimer_accepted');
-    if (accepted) {
-      setAppState('input');
-    } else {
-      setAppState('disclaimer');
-    }
+    setAppState('input');
   }, []);
 
   const handleDisclaimerAccept = () => {
     setAppState('input');
+    if (equipment) {
+      handleEquipmentSubmit(equipment);
+    }
   };
 
   const handleEquipmentSubmit = async (data) => {
+    setEquipment(data);
+    setAppState('disclaimer');
+  };
+
+  const processAnalysis = async (data) => {
     setIsLoading(true);
     setError(null);
 
@@ -113,6 +116,10 @@ JSON формат:
             hasAnalysis={appState === 'generating' && isDataModified}
             isModified={onFormChange}
           />
+        )}
+
+        {appState === 'disclaimer' && (
+          <Disclaimer onAccept={() => processAnalysis(equipment)} />
         )}
 
         {error && (

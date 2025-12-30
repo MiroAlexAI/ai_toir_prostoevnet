@@ -12,9 +12,10 @@ export async function POST(request) {
 
         const client = new InferenceClient(hfKey);
 
-        const prompt = `A simplified technical schematic drawing of ${type} ${model}. 
-        Minimalist engineering vector illustration, professional blueprint line art, clean diagram style, high contrast white background. 
-        Focus on basic structure and main components: ${parts || 'internal mechanics'}.`;
+        const prompt = `Professional technical schematic of ${type} model ${model} ${manufacturer || ''}. 
+        It consists of the following components: ${parts || 'internal mechanical parts'}. 
+        Simplified engineering line art, minimalist blueprint vector illustration, clean diagram style, high contrast white background. 
+        NO artistic details, NO shadows, focus only on technical structure.`;
 
         // Используем модель FLUX.1-schnell для быстрой и качественной генерации
         const response = await client.textToImage({
