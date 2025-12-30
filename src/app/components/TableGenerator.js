@@ -14,7 +14,8 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
         parts: "",
         fmea: "",
         rcm: "",
-        plan: ""
+        plan: "",
+        image: ""
     });
     const [loadingStep, setLoadingStep] = useState(null);
     const [error, setError] = useState(null);
@@ -121,6 +122,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                 throw new Error(detailedError);
             }
             setGeneratedImage(data.image);
+            setModels(prev => ({ ...prev, image: data.modelUsed }));
             setActiveStep(5);
         } catch (err) {
             setError(`Ошибка генерации изображения: ${err.message}`);
@@ -145,7 +147,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
         { id: 2, label: "02. Анализ FMEA", desc: "Анализ видов, причин и последствий отказов (RPN)" },
         { id: 3, label: "03. Анализ RCM", desc: "Выбор стратегии обслуживания на основе критичности" },
         { id: 4, label: "04. План ТОиР", desc: "Финальные рекомендации и план эксплуатации" },
-        { id: 5, label: "05. Изображение", desc: "Генерация технического разреза оборудования" }
+        // { id: 5, label: "05. Изображение", desc: "Генерация технического разреза оборудования" }
     ];
 
     return (
@@ -153,9 +155,14 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
 
             {/* Navigation Steps */}
             <div className="bg-white shadow-sm border border-slate-200 p-4 space-y-4">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-900 border-b pb-2 mb-2">
-                    <span className="bg-blue-900 text-white px-2 py-0.5">Инфо</span>
-                    Рекомендованный порядок: 01 → 02 → 03 → 04 → 05
+                <div className="flex justify-between items-center border-b pb-2 mb-2">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-900">
+                        <span className="bg-blue-900 text-white px-2 py-0.5">Инфо</span>
+                        Рекомендованный порядок: 01 → 02 → 03 → 04
+                    </div>
+                    <div className="text-[11px] font-black text-red-600 uppercase animate-pulse">
+                        Выбирете следующую задачу ↓
+                    </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
                     {stepButtons.map((s, idx) => (
@@ -184,7 +191,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                                     {s.id === 5 && tables.parts.length === 0 ? "Сначала выполните Этап 1" : s.desc}
                                 </div>
                             </div>
-                            {idx < 4 && <span className="text-slate-300 font-bold hidden md:inline">→</span>}
+                            {idx < stepButtons.length - 1 && <span className="text-slate-300 font-bold hidden md:inline">→</span>}
                         </React.Fragment>
                     ))}
                 </div>
@@ -203,7 +210,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                 {tables.parts.length > 0 && (
                     <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="flex justify-between items-center border-b border-blue-600 pb-1">
-                            <h3 className="text-xs font-black text-blue-900 uppercase">Этап 1: Состав оборудования ({equipment.type})</h3>
+                            <h3 className="text-xs font-black text-blue-900 uppercase">Этап 1: Спецификация оборудования ({equipment.type})</h3>
                             <span className="text-[8px] text-red-500 italic font-bold">{WARNING_TEXT}</span>
                         </div>
                         <div className="gost-card overflow-x-auto">
@@ -321,9 +328,12 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                                 />
                                 <div className="absolute inset-0 bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             </div>
-                            <p className="text-[10px] text-slate-500 italic font-bold uppercase tracking-widest">
-                                Технический разрез оборудования (AI Generated)
-                            </p>
+                            <div className="flex flex-col items-center gap-2">
+                                <p className="text-[10px] text-slate-500 italic font-bold uppercase tracking-widest">
+                                    Технический разрез оборудования (AI Generated)
+                                </p>
+                                <span className="text-[9px] font-mono text-slate-400 italic">Core: {models.image}</span>
+                            </div>
                         </div>
                     </div>
                 )}

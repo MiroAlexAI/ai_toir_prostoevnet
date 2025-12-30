@@ -38,15 +38,15 @@ export default function Home() {
     try {
       const prompt = `Данные: Участок: ${data.site}, Тип: ${data.type}, Модель: ${data.model}, Производитель: ${data.manufacturer}
 Задание (будь КРАТОК):
-1. Валидация (status: valid/invalid). Критерий: Реальный вид техники = valid. Игнорируй производителя.
-2. При invalid: причина + 1 пример типа оборудования (suggestion).
-3. 3 реальных аналога (analogues).
+1. Валидация (status: valid/invalid). Критерий: Реальный вид техники = valid.
+2. 3 реальных аналога (analogues).
+3. Краткое описание назначения этого оборудования (purpose, до 150 знаков).
 
 JSON формат:
 {
   "status": "valid"|"invalid",
   "reason": "...",
-  "suggestion": "...",
+  "purpose": "...",
   "analogues": ["Модель 1", "Модель 2", "Модель 3"]
 }`;
 
@@ -62,13 +62,14 @@ JSON формат:
       const parsed = JSON.parse(result.result.replace(/```json|```/g, '').trim());
 
       if (parsed.status === 'valid') {
-        setEquipment(data);
-        setAbbreviation(generateAbbreviation(data));
+        const abbr = generateAbbreviation(data);
+        setEquipment({ ...data, purpose: parsed.purpose });
+        setAbbreviation(abbr);
         setAnalogues(parsed.analogues || []);
         setAppState('generating');
         setIsDataModified(false);
       } else {
-        setError(`Оборудование не найдено: ${parsed.reason || "некорректные данные"}. Попробуйте, например: ${parsed.suggestion || "Насос НК 200/120"}`);
+        setError(`Оборудование не найдено: ${parsed.reason || "некорректные данные"}. Попробуйте корректные данные.`);
       }
     } catch (err) {
       setError("Ошибка при проверке оборудования: " + err.message);
@@ -120,13 +121,25 @@ JSON формат:
         {appState === 'generating' && (
           <div className="space-y-8">
             <div className="max-w-4xl mx-auto p-4 bg-blue-50 border-l-4 border-blue-600 animate-in fade-in duration-700">
-              <p className="text-[10px] uppercase font-bold text-blue-800 mb-2">Найдено 3 ближайших аналога:</p>
-              <div className="flex gap-4">
-                {analogues.map((a, i) => (
-                  <div key={i} className="px-3 py-1 bg-white border border-blue-200 text-[10px] font-bold text-blue-900 rounded shadow-sm">
-                    {a}
-                  </div>
-                ))}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <p className="text-[10px] uppercase font-black text-blue-900 mb-1">Назначение оборудования:</p>
+                  <p className="text-[11px] text-blue-800 italic leading-tight max-w-2xl">{equipment?.purpose}</p>
+                </div>
+                <div className="bg-blue-900 text-white px-3 py-1 rounded font-mono text-xs font-bold shadow-md">
+                  ID: {abbreviation}
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-blue-200">
+                <p className="text-[10px] uppercase font-bold text-blue-800 mb-2">Ближайшие аналоги:</p>
+                <div className="flex flex-wrap gap-2">
+                  {analogues.map((a, i) => (
+                    <div key={i} className="px-3 py-1 bg-white border border-blue-200 text-[10px] font-bold text-blue-900 rounded shadow-sm">
+                      {a}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
