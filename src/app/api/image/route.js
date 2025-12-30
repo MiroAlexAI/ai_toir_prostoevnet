@@ -12,14 +12,14 @@ export async function POST(request) {
 
         const client = new InferenceClient(hfKey);
 
-        const prompt = `Highest quality professional technical cutaway illustration of ${type} ${model} ${manufacturer || ''}. 
-        Cross-section view revealing internal mechanisms: ${parts || 'internal components'}. 
-        Labeled engineering drawing style, blueprint aesthetic, detailed mechanical parts, gears, bearings, housings, 4k ultra-detailed, white background.`;
+        const prompt = `Highest quality professional technical cutaway schematic of ${type} ${model} ${manufacturer || ''}. 
+        Show internal mechanisms: ${parts || 'internal gears and bearings'}. 
+        Minimalist engineering illustration, blueprint aesthetic, detailed mechanical parts, white background, technical diagram.`;
 
-        // Используем предложенную пользователем модель и провайдера через официальный SDK
+        // Используем модель Tongyi-MAI/Z-Image-Turbo через провайдера fal-ai для схематичных изображений
         const response = await client.textToImage({
-            provider: "nebius",
-            model: "black-forest-labs/FLUX.1-dev",
+            provider: "fal-ai",
+            model: "Tongyi-MAI/Z-Image-Turbo",
             inputs: prompt,
             parameters: {
                 num_inference_steps: 5,
