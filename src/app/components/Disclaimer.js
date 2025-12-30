@@ -3,27 +3,15 @@
 import React, { useState, useEffect } from 'react';
 
 export default function Disclaimer({ onAccept }) {
-    const [isVisible, setIsVisible] = useState(false);
     const [step, setStep] = useState(1);
-
-    useEffect(() => {
-        const accepted = localStorage.getItem('toir_disclaimer_accepted');
-        if (!accepted) {
-            setIsVisible(true);
-        }
-    }, []);
 
     const handleConfirm = () => {
         if (step === 1) {
             setStep(2);
         } else {
-            localStorage.setItem('toir_disclaimer_accepted', 'true');
-            setIsVisible(false);
             onAccept();
         }
     };
-
-    if (!isVisible) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">

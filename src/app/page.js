@@ -6,8 +6,10 @@ import EquipmentInput from './components/EquipmentInput';
 import TableGenerator from './components/TableGenerator';
 
 export default function Home() {
-  const [appState, setAppState] = useState('loading'); // loading, disclaimer, input, generating
+  const [appState, setAppState] = useState('input'); // input, generating
   const [equipment, setEquipment] = useState(null);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [pendingData, setPendingData] = useState(null);
   const [abbreviation, setAbbreviation] = useState('');
   const [analogues, setAnalogues] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,25 +24,16 @@ export default function Home() {
     return `${site}-${type}-${model}-${year}`;
   };
 
-  useEffect(() => {
-    setAppState('input');
-  }, []);
-
-  const handleDisclaimerAccept = () => {
-    setAppState('input');
-    if (equipment) {
-      handleEquipmentSubmit(equipment);
-    }
-  };
-
-  const handleEquipmentSubmit = async (data) => {
-    setEquipment(data);
-    setAppState('disclaimer');
+  const handleEquipmentSubmit = (data) => {
+    setPendingData(data);
+    setShowDisclaimer(true);
   };
 
   const processAnalysis = async (data) => {
+    setShowDisclaimer(false);
     setIsLoading(true);
     setError(null);
+    setEquipment(data);
 
     try {
       const prompt = `Данные: Участок: ${data.site}, Тип: ${data.type}, Модель: ${data.model}, Производитель: ${data.manufacturer}
@@ -104,23 +97,19 @@ JSON формат:
         </div>
       </div>
 
-      {appState === 'disclaimer' && (
-        <Disclaimer onAccept={handleDisclaimerAccept} />
+      {showDisclaimer && (
+        <Disclaimer onAccept={() => processAnalysis(pendingData)} />
       )}
 
       <div className="space-y-8">
-        {(appState === 'input' || appState === 'generating') && (
-          <EquipmentInput
-            onSubmit={handleEquipmentSubmit}
-            isLoading={isLoading}
-            hasAnalysis={appState === 'generating' && isDataModified}
-            isModified={onFormChange}
-          />
-        )}
+        <EquipmentInput
+          onSubmit={handleEquipmentSubmit}
+          isLoading={isLoading}
+          hasAnalysis={appState === 'generating' && isDataModified}
+          isModified={onFormChange}
+        />
 
-        {appState === 'disclaimer' && (
-          <Disclaimer onAccept={() => processAnalysis(equipment)} />
-        )}
+
 
         {error && (
           <div className="max-w-4xl mx-auto mt-4 p-4 bg-red-50 border border-red-200 text-red-600 text-xs font-bold uppercase rounded">
