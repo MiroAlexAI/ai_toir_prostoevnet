@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-export default function TableGenerator({ equipment, abbreviation, reset }) {
+export default function TableGenerator({ equipment, abbreviation, reset, analogues, onAnalogClick }) {
     const [activeStep, setActiveStep] = useState(0);
     const [tables, setTables] = useState({
         parts: [],
@@ -42,7 +42,7 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
 
             if (stepToGen === 1) {
                 prompt = `Для оборудования ${equipStr} сгенерируй таблицу основных узлов и частей (5 строк). 
-Верни ответ СТРОГО В ФОРМАТЕ JSON массива объектов с полями: "Название", "Описание", "Функция".
+Верни ответ СТРОГО В ФОРМАТЕ JSON массива объектов с полями: "Название", "Описание", "Функция", "Вес, кг".
 Не добавляй никакого лишнего текста, только JSON массив.`;
             } else if (stepToGen === 2) {
                 const nodes = tables.parts.length > 0 ? tables.parts.map(p => p.Название).join(", ") : "основные узлы";
@@ -215,10 +215,10 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                         </div>
                         <div className="gost-card overflow-x-auto">
                             <table className="gost-table">
-                                <thead><tr><th>Название</th><th>Функция</th><th>Описание</th></tr></thead>
+                                <thead><tr><th>Название</th><th>Функция</th><th>Описание</th><th className="w-20">Вес, кг</th></tr></thead>
                                 <tbody>
                                     {tables.parts.map((p, i) => (
-                                        <tr key={i}><td className="font-bold">{p.Название}</td><td>{p.Функция}</td><td className="text-[10px] text-slate-600">{p.Описание}</td></tr>
+                                        <tr key={i}><td className="font-bold">{p.Название}</td><td>{p.Функция}</td><td className="text-[10px] text-slate-600">{p.Описание}</td><td className="text-center font-mono text-[10px]">{p["Вес, кг"] || p.Вес || '-'}</td></tr>
                                     ))}
                                 </tbody>
                             </table>
@@ -334,6 +334,24 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                                 </p>
                                 <span className="text-[9px] font-mono text-slate-400 italic">Core: {models.image}</span>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Ближайшие аналоги - появляются только после Плана ТОиР (Этап 4) */}
+                {tables.plan && analogues && analogues.length > 0 && (
+                    <div className="max-w-4xl mx-auto p-4 bg-white border border-blue-200 shadow-sm animate-in fade-in duration-700">
+                        <p className="text-[10px] uppercase font-black text-blue-900 mb-3 border-b pb-1">Ближайшие рыночные аналоги (нажмите для выбора):</p>
+                        <div className="flex flex-wrap gap-2">
+                            {analogues.map((a, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => onAnalogClick && onAnalogClick(a)}
+                                    className="px-3 py-1 bg-blue-50 border border-blue-100 text-[10px] font-bold text-blue-900 rounded hover:bg-blue-900 hover:text-white transition-all shadow-sm"
+                                >
+                                    {a}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 )}

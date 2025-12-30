@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isModified }) {
+export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isModified, initialData }) {
     const [formData, setFormData] = useState({
         site: '',
         type: '',
@@ -10,6 +10,15 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
         year: '',
         manufacturer: ''
     });
+
+    React.useEffect(() => {
+        if (typeof initialData === 'object' && initialData !== null) {
+            setFormData(prev => ({
+                ...prev,
+                ...initialData
+            }));
+        }
+    }, [initialData]);
 
     const handleChange = (e) => {
         const newData = { ...formData, [e.target.name]: e.target.value };
@@ -38,24 +47,24 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase text-slate-400">Технологический участок <span className="text-red-500 ml-1">*</span></label>
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Отрасль <span className="text-red-500 ml-1">*</span></label>
                             <input
                                 required
                                 name="site"
                                 value={formData.site}
                                 onChange={handleChange}
-                                placeholder="Цех №1"
+                                placeholder="Таксопарк"
                                 className="w-full p-2 text-sm border border-slate-300 focus:border-blue-600 outline-none transition-colors"
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase text-slate-400">Тип оборудования <span className="text-red-500 ml-1">*</span></label>
+                            <label className="text-[10px] font-bold uppercase text-slate-400">Оборудование/Агрегат <span className="text-red-500 ml-1">*</span></label>
                             <input
                                 required
                                 name="type"
                                 value={formData.type}
                                 onChange={handleChange}
-                                placeholder="Насос"
+                                placeholder="Легковой автомобиль"
                                 className="w-full p-2 text-sm border border-slate-300 focus:border-blue-600 outline-none transition-colors"
                             />
                         </div>
@@ -66,7 +75,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                                 name="model"
                                 value={formData.model}
                                 onChange={handleChange}
-                                placeholder="НК 200/120"
+                                placeholder="LADA Largus"
                                 className="w-full p-2 text-sm border border-slate-300 focus:border-blue-600 outline-none transition-colors"
                             />
                         </div>
@@ -78,7 +87,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                                 type="number"
                                 value={formData.year}
                                 onChange={handleChange}
-                                placeholder="2018"
+                                placeholder="2021"
                                 className="w-full p-2 text-sm border border-slate-300 focus:border-blue-600 outline-none transition-colors"
                             />
                         </div>
@@ -88,7 +97,7 @@ export default function EquipmentInput({ onSubmit, isLoading, hasAnalysis, isMod
                                 name="manufacturer"
                                 value={formData.manufacturer}
                                 onChange={handleChange}
-                                placeholder="Завод-изготовитель"
+                                placeholder="АВТОВАЗ"
                                 className="w-full p-2 text-sm border border-slate-300 focus:border-blue-600 outline-none transition-colors"
                             />
                         </div>

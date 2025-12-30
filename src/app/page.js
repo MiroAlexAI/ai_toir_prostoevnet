@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import Disclaimer from './components/Disclaimer';
 import EquipmentInput from './components/EquipmentInput';
 import TableGenerator from './components/TableGenerator';
@@ -15,6 +16,23 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isDataModified, setIsDataModified] = useState(false);
+  const [inputPrefill, setInputPrefill] = useState(null);
+
+  const handleAnalogClick = (analog) => {
+    // Формат аналога предполагается как "Модель (Тип)" или просто "Модель"
+    // Извлекаем тип если он есть в скобках
+    const typeMatch = analog.match(/\((.*)\)/);
+    const type = typeMatch ? typeMatch[1] : (equipment?.type || "");
+    const model = analog.replace(/\s*\(.*\)/, "").trim();
+
+    setInputPrefill({
+      type: type,
+      model: model
+    });
+
+    // Прокручиваем к форме
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const generateAbbreviation = (data) => {
     const site = data.site.substring(0, 3).toUpperCase();
@@ -36,18 +54,20 @@ export default function Home() {
     setEquipment(data);
 
     try {
-      const prompt = `Данные: Участок: ${data.site}, Тип: ${data.type}, Модель: ${data.model}, Производитель: ${data.manufacturer}
+      const prompt = `Данные: Отрасль: ${data.site}, Оборудование/Агрегат: ${data.type}, Модель: ${data.model}, Производитель: ${data.manufacturer}
 Задание (будь КРАТОК):
-1. Валидация (status: valid/invalid). Критерий: Реальный вид техники = valid.
-2. 3 реальных аналога (analogues).
-3. Краткое описание назначения этого оборудования (purpose, до 150 знаков).
+1. Валидация (status: valid/invalid).
+2. 3 реальных аналога (analogues). Формат: "Модель (Тип)".
+3. Технические характеристики (purpose) в виде ПРОСТОГО СПИСКА (Параметр: Значение).
+
+ВАЖНО: Ответ должен быть СТРОГИМ JSON. ОБЯЗАТЕЛЬНО экранируй переносы строк как \\n внутри JSON-строк. Не используй реальные переносы строк или символы табуляции внутри значений.
 
 JSON формат:
 {
   "status": "valid"|"invalid",
   "reason": "...",
-  "purpose": "...",
-  "analogues": ["Модель 1", "Модель 2", "Модель 3"]
+  "purpose": "Характеристика 1: Значение\\nХарактеристика 2: Значение",
+  "analogues": ["Модель 1 (Тип)", "Модель 2 (Тип)", "Модель 3 (Тип)"]
 }`;
 
       const response = await fetch('/api/ai', {
@@ -59,7 +79,16 @@ JSON формат:
       const result = await response.json();
       if (result.error) throw new Error(result.error);
 
-      const parsed = JSON.parse(result.result.replace(/```json|```/g, '').trim());
+      // Очистка и нормализация JSON от ИИ
+      let cleanResult = result.result.replace(/```json|```/g, '').trim();
+
+      // Исправление типичной ошибки ИИ: неэкранированные переносы строк внутри JSON-строк
+      // Находим содержимое между кавычками и заменяем реальные переносы на \n
+      cleanResult = cleanResult.replace(/"([^"]*)"/g, (match, p1) => {
+        return '"' + p1.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
+      });
+
+      const parsed = JSON.parse(cleanResult);
 
       if (parsed.status === 'valid') {
         const abbr = generateAbbreviation(data);
@@ -108,6 +137,7 @@ JSON формат:
           isLoading={isLoading}
           hasAnalysis={appState === 'generating' && isDataModified}
           isModified={onFormChange}
+          initialData={inputPrefill}
         />
 
 
@@ -122,29 +152,26 @@ JSON формат:
           <div className="space-y-8">
             <div className="max-w-4xl mx-auto p-4 bg-blue-50 border-l-4 border-blue-600 animate-in fade-in duration-700">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <p className="text-[10px] uppercase font-black text-blue-900 mb-1">Назначение оборудования:</p>
-                  <p className="text-[11px] text-blue-800 italic leading-tight max-w-2xl">{equipment?.purpose}</p>
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase font-black text-blue-900 mb-2">Технические характеристики:</p>
+                  <pre className="whitespace-pre-wrap font-sans text-[11px] text-blue-800 leading-tight">
+                    {equipment?.purpose}
+                  </pre>
                 </div>
                 <div className="bg-blue-900 text-white px-3 py-1 rounded font-mono text-xs font-bold shadow-md">
                   ID: {abbreviation}
                 </div>
               </div>
-
-              <div className="mt-4 pt-4 border-t border-blue-200">
-                <p className="text-[10px] uppercase font-bold text-blue-800 mb-2">Ближайшие аналоги:</p>
-                <div className="flex flex-wrap gap-2">
-                  {analogues.map((a, i) => (
-                    <div key={i} className="px-3 py-1 bg-white border border-blue-200 text-[10px] font-bold text-blue-900 rounded shadow-sm">
-                      {a}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div className={isDataModified ? "opacity-50 grayscale pointer-events-none transition-all duration-300" : "transition-all duration-300"}>
-              <TableGenerator equipment={equipment} abbreviation={abbreviation} reset={isDataModified} />
+              <TableGenerator
+                equipment={equipment}
+                abbreviation={abbreviation}
+                reset={isDataModified}
+                analogues={analogues}
+                onAnalogClick={handleAnalogClick}
+              />
             </div>
           </div>
         )}
@@ -155,6 +182,6 @@ JSON формат:
           Разработано для образовательных целей компании Простоев.НЕТ
         </p>
       </footer>
-    </main>
+    </main >
   );
 }

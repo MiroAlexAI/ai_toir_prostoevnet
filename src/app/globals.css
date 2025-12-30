@@ -67,3 +67,27 @@ body {
   padding: 8px;
   font-size: 0.875rem;
 }
+
+/* Markdown Styles */
+.markdown-content table {
+  width: auto;
+  min-width: 300px;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.markdown-content th {
+  background: rgba(0, 74, 153, 0.05);
+  border: 1px solid rgba(0, 74, 153, 0.2);
+  padding: 4px 8px;
+  text-align: left;
+  font-size: 10px;
+  color: var(--gost-blue);
+  text-transform: uppercase;
+}
+
+.markdown-content td {
+  border: 1px solid rgba(0, 74, 153, 0.2);
+  padding: 4px 8px;
+  font-size: 10px;
+}
