@@ -131,15 +131,25 @@ ${content}`;
 
         // 2. Если Google не сработал — идем по списку OpenRouter ключей и моделей
         if (!resultText) {
+            const modelsToTry = [
+                'google/gemini-2.0-flash-exp:free',
+                'google/gemini-2.0-flash-lite-preview-02-05:free',
+                'deepseek/deepseek-r1:free',
+                'mistralai/mistral-small-24b-instruct-2501:free',
+                'meta-llama/llama-3.3-70b-instruct:free',
+                'tngtech/tng-r1t-chimera:free',
+                'qwen/qwen-2.5-72b-instruct:free',
+                'google/gemini-2.0-pro-exp-02-05:free'
+            ];
+
             if (openRouterKeys.length === 0) {
-                return NextResponse.json({ error: 'Нет доступных ключей API', model: usedModel || "None" }, { status: 500 });
+                return NextResponse.json({ error: 'Нет доступных ключей API OpenRouter', model: usedModel || "None" }, { status: 500 });
             }
 
             outerLoop: for (let modelName of modelsToTry) {
                 for (let i = 0; i < openRouterKeys.length; i++) {
                     try {
                         console.log(`Trying OpenRouter Key #${i + 1} with model ${modelName}...`);
-                        usedModel = `OpenRouter Key #${i + 1} (${modelName})`;
 
                         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                             method: 'POST',
@@ -160,17 +170,18 @@ ${content}`;
                             const data = await response.json();
                             resultText = data.choices?.[0]?.message?.content;
                             if (resultText) {
-                                usedModel = `OpenRouter Key #${i + 1} (${data.model})`;
+                                usedModel = `OpenRouter Key #${i + 1} (${data.model || modelName})`;
                                 break outerLoop;
                             }
                         } else {
-                            lastError = await response.json();
-                            console.error(`OpenRouter Key #${i + 1} with ${modelName} failed:`, lastError);
-                            // Если ошибка 429 или 401, пробуем следующий ключ для ЭТОЙ ЖЕ модели
+                            const errorData = await response.json();
+                            lastError = { model: modelName, keyIndex: i + 1, error: errorData };
+                            console.error(`OpenRouter Key #${i + 1} with ${modelName} failed:`, errorData);
                             continue;
                         }
                     } catch (e) {
-                        console.error(`OpenRouter Error (Key #${i + 1}, ${modelName}):`, e.message);
+                        console.error(`OpenRouter Exception (Key #${i + 1}, ${modelName}):`, e.message);
+                        lastError = { model: modelName, keyIndex: i + 1, exception: e.message };
                     }
                 }
             }
@@ -178,7 +189,7 @@ ${content}`;
 
         if (!resultText) {
             return NextResponse.json({
-                error: 'Все ключи API и модели исчерпаны или недоступны.',
+                error: 'Все ключи API и модели исчерпаны или недоступны. Ошибка перевода.',
                 details: lastError,
                 model: usedModel || "All Failed"
             }, { status: 500 });

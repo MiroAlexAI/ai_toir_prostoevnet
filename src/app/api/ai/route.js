@@ -84,9 +84,14 @@ export async function POST(request) {
         // 3. OpenRouter с ротацией ключей и моделей
         if (!resultText) {
             const modelsToTry = [
+                'google/gemini-2.0-flash-exp:free',
+                'google/gemini-2.0-flash-lite-preview-02-05:free',
+                'deepseek/deepseek-r1:free',
+                'mistralai/mistral-small-24b-instruct-2501:free',
+                'meta-llama/llama-3.3-70b-instruct:free',
                 'tngtech/tng-r1t-chimera:free',
-                'mistralai/mistral-small',
-                'google/gemini-2.0-flash-exp:free' // В самый конец по просьбе пользователя
+                'qwen/qwen-2.5-72b-instruct:free',
+                'google/gemini-2.0-pro-exp-02-05:free'
             ];
 
             if (openRouterKeys.length > 0) {
@@ -112,14 +117,17 @@ export async function POST(request) {
                                 const data = await response.json();
                                 resultText = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning_content;
                                 if (resultText) {
-                                    usedModel = `OpenRouter Key #${i + 1} (${data.model})`;
+                                    usedModel = `OpenRouter Key #${i + 1} (${data.model || modelName})`;
                                     break outerLoop;
                                 }
                             } else {
-                                lastError = await response.json();
+                                const errorData = await response.json();
+                                lastError = { model: modelName, keyIndex: i + 1, error: errorData };
+                                console.warn(`OR Error (Key #${i + 1}, ${modelName}):`, errorData);
                             }
                         } catch (e) {
-                            console.error(`OR Error (Key #${i + 1}, ${modelName}):`, e.message);
+                            console.error(`OR Exception (Key #${i + 1}, ${modelName}):`, e.message);
+                            lastError = { model: modelName, keyIndex: i + 1, exception: e.message };
                         }
                     }
                 }
@@ -128,7 +136,7 @@ export async function POST(request) {
 
         if (!resultText) {
             return NextResponse.json({
-                error: 'Все ключи API и модели исчерпаны или недоступны.',
+                error: 'Все ключи API и модели исчерпаны или недоступны. Ошибка этапа 1.',
                 details: lastError
             }, { status: 500 });
         }
