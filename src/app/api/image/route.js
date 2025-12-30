@@ -12,9 +12,9 @@ export async function POST(request) {
 
         const client = new InferenceClient(hfKey);
 
-        const prompt = `Highest quality professional technical cutaway schematic of ${type} ${model} ${manufacturer || ''}. 
-        Show internal mechanisms: ${parts || 'internal gears and bearings'}. 
-        Minimalist engineering illustration, blueprint aesthetic, detailed mechanical parts, white background, technical diagram.`;
+        const prompt = `A simplified technical schematic drawing of ${type} ${model}. 
+        Minimalist engineering vector illustration, professional blueprint line art, clean diagram style, high contrast white background. 
+        Focus on basic structure and main components: ${parts || 'internal mechanics'}.`;
 
         // Используем модель FLUX.1-schnell для быстрой и качественной генерации
         const response = await client.textToImage({
