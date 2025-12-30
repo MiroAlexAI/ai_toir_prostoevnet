@@ -16,16 +16,10 @@ export async function POST(request) {
         Show internal mechanisms: ${parts || 'internal gears and bearings'}. 
         Minimalist engineering illustration, blueprint aesthetic, detailed mechanical parts, white background, technical diagram.`;
 
-        // Используем модель Tongyi-MAI/Z-Image-Turbo через провайдера fal-ai для схематичных изображений
+        // Используем модель FLUX.1-schnell для быстрой и качественной генерации
         const response = await client.textToImage({
-            provider: "fal-ai",
-            model: "Tongyi-MAI/Z-Image-Turbo",
+            model: "black-forest-labs/FLUX.1-schnell",
             inputs: prompt,
-            parameters: {
-                num_inference_steps: 5,
-                width: 400,
-                height: 300
-            },
         });
 
         // SDK возвращает Blob. Преобразуем его в base64 для передачи на фронтенд
@@ -36,10 +30,11 @@ export async function POST(request) {
         return NextResponse.json({ image: dataUrl });
 
     } catch (error) {
-        console.error("Image Generation Error:", error);
+        console.error("Image Generation Error Details:", error);
         return NextResponse.json({
             error: 'Ошибка генерации изображения',
-            details: error.message
+            details: error.message,
+            stack: error.stack
         }, { status: 500 });
     }
 }

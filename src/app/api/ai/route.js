@@ -23,6 +23,9 @@ export async function POST(request) {
         // 1. Пытаемся вызвать Hugging Face GLM-4.5-Air (Приоритет №1)
         if (hfKey) {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // Тайм-аут 5 секунд
+
                 const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -32,9 +35,11 @@ export async function POST(request) {
                     body: JSON.stringify({
                         model: "zai-org/GLM-4.5-Air:zai-org",
                         messages: [{ role: 'user', content: prompt }],
-                        temperature: 0.1, // Снижаем температуру для точности
-                    })
+                        temperature: 0.1,
+                    }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
                 if (response.ok) {
                     const data = await response.json();

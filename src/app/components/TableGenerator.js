@@ -113,7 +113,10 @@ export default function TableGenerator({ equipment, abbreviation, reset }) {
                 })
             });
             const data = await response.json();
-            if (data.error) throw new Error(data.error);
+            if (data.error) {
+                const detailedError = data.details ? `${data.error}: ${data.details}` : data.error;
+                throw new Error(detailedError);
+            }
             setGeneratedImage(data.image);
             setActiveStep(5);
         } catch (err) {
